@@ -55,30 +55,44 @@ custom_components/intelbras_amt/
 ├── __init__.py           # Setup entry
 ├── manifest.json         # Integration metadata (VERSION HERE)
 ├── const.py              # Protocol constants
-├── client.py             # AMT TCP protocol client
+├── server.py             # AMT TCP server (receives panel connections)
 ├── coordinator.py        # DataUpdateCoordinator
 ├── config_flow.py        # UI configuration
 ├── alarm_control_panel.py
 ├── binary_sensor.py
 ├── sensor.py
-├── button.py
+├── switch.py             # Siren, PGMs, partitions, arm/disarm
+├── button.py             # Bypass open zones
 ├── strings.json
 └── translations/
     ├── en.json
     └── pt-BR.json
 ```
 
-## Testing
+## Deployment
 
-To test locally before release:
-1. Copy `custom_components/intelbras_amt` to HA's `config/custom_components/`
-2. Restart Home Assistant
-3. Add integration via UI
+**IMPORTANT**: NEVER copy files directly to `/homeassistant/custom_components/`.
+
+Updates are done exclusively via HACS:
+1. Commit and push changes to GitHub
+2. Create a GitHub release with version tag
+3. In Home Assistant: HACS → Integrations → Intelbras AMT → Update
+4. Restart Home Assistant
 
 ## Protocol Reference
 
-AMT TCP protocol on port 9015:
-- Frame: `[Length] [0xe9] [0x21] [PASSWORD] [COMMAND] [0x21] [XOR_CHECKSUM]`
-- Status command: `0x5A` ('Z')
+AMT TCP protocol (Server Mode - panel connects TO Home Assistant):
+- Default port: `9009`
+- Frame: `[Length] [0xE9] [0x21] [PASSWORD_ASCII] [COMMAND] [0x21] [XOR_CHECKSUM]`
+- Checksum: XOR all bytes, then XOR with 0xFF
+- Password: ASCII encoding (e.g., "1234" = `0x31 0x32 0x33 0x34`)
+
+Commands:
+- Status (full): `0x5B` (54 bytes response)
 - Arm: `0x41` ('A')
 - Disarm: `0x44` ('D')
+- Stay: `0x41 0x50` ('AP')
+- Siren on: `0x43`
+- Siren off: `0x63`
+
+Heartbeat: Panel sends `0xF7`, server responds with ACK `[0x01] [0xFE] [checksum]`
