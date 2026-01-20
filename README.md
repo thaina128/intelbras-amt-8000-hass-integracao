@@ -12,10 +12,10 @@ Integração nativa para Home Assistant dos sistemas de alarme Intelbras AMT 401
 
 ## Funcionalidades
 
-- **Painel de Alarme**: Armar/desarmar com código de segurança obrigatório
+- **Painéis de Alarme**: Central e partições com código de segurança obrigatório
 - **Modo Stay**: Armar em modo stay (parcial)
 - **Monitoramento de Zonas**: Até 64 zonas com status aberta, violada, anulada, tamper e curto-circuito
-- **Controle de Partições**: Switches para armar/desarmar partições A, B, C, D
+- **Controle de Partições**: Painéis individuais para armar/desarmar partições A, B, C, D (com código)
 - **Controle de PGM**: 19 saídas PGM (switches on/off)
 - **Controle da Sirene**: Switch para ligar/desligar sirene
 - **Sensores de Status**: Nível da bateria, energia AC, problemas detalhados
@@ -84,27 +84,28 @@ Configure sua central AMT para conectar ao Home Assistant:
 4. Preencha:
    - **Porta**: Porta TCP para escutar (padrão: `9009`)
    - **Senha**: Senha de acesso remoto configurada na central
-5. Opcionalmente configure as senhas das partições
 
 ### 3. Segurança
 
-O painel de alarme requer **código numérico** para armar/desarmar. Este código é a mesma senha de acesso remoto configurada na central. Isso garante que mesmo usuários com acesso ao Home Assistant precisem saber a senha para controlar o alarme.
+Todos os painéis de alarme (central e partições) requerem **código numérico** para armar/desarmar. Este código é a mesma senha de acesso remoto configurada na central. Isso garante que mesmo usuários com acesso ao Home Assistant precisem saber a senha para controlar o alarme.
 
 ## Entidades Criadas
 
-### Painel de Alarme
+### Painéis de Alarme
 | Entidade | Descrição |
 |----------|-----------|
 | `alarm_control_panel.amt_porta_XXXX_central` | Painel principal (requer código) |
+| `alarm_control_panel.amt_porta_XXXX_particao_a` | Partição A (requer código) |
+| `alarm_control_panel.amt_porta_XXXX_particao_b` | Partição B (requer código) |
+| `alarm_control_panel.amt_porta_XXXX_particao_c` | Partição C (requer código) |
+| `alarm_control_panel.amt_porta_XXXX_particao_d` | Partição D (requer código) |
 
 Estados: `disarmed`, `armed_away`, `armed_home`, `triggered`
 
 ### Switches (Controles)
 | Entidade | Descrição |
 |----------|-----------|
-| `switch.amt_*_armar` | Armar/desarmar geral |
 | `switch.amt_*_sirene` | Ligar/desligar sirene |
-| `switch.amt_*_particao_X` | Armar/desarmar partição (A/B/C/D) |
 | `switch.amt_*_pgm_N` | Ativar/desativar PGM (1-19) |
 
 ### Sensores Binários - Zonas

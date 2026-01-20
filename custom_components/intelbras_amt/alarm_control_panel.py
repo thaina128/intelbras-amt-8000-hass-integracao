@@ -22,11 +22,14 @@ from .const import (
     DATA_ARMED,
     DATA_CONNECTED,
     DATA_MODEL_NAME,
+    DATA_PARTITIONS,
     DATA_SIREN,
     DATA_STAY,
     DATA_TRIGGERED,
     DOMAIN,
     ENTITY_PREFIX,
+    MAX_PARTITIONS,
+    PARTITION_NAMES,
 )
 from .coordinator import AMTCoordinator
 
@@ -41,7 +44,16 @@ async def async_setup_entry(
     """Set up alarm control panel from a config entry."""
     coordinator: AMTCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    async_add_entities([AMTAlarmControlPanel(coordinator, entry)])
+    entities: list[AlarmControlPanelEntity] = [
+        AMTAlarmControlPanel(coordinator, entry),
+    ]
+
+    # Add partition alarm panels
+    for partition_idx in range(MAX_PARTITIONS):
+        partition_name = PARTITION_NAMES[partition_idx]
+        entities.append(AMTPartitionAlarmPanel(coordinator, entry, partition_name))
+
+    async_add_entities(entities)
 
 
 class AMTAlarmControlPanel(CoordinatorEntity[AMTCoordinator], AlarmControlPanelEntity):
@@ -128,3 +140,81 @@ class AMTAlarmControlPanel(CoordinatorEntity[AMTCoordinator], AlarmControlPanelE
     async def async_alarm_trigger(self, code: str | None = None) -> None:
         """Trigger the alarm (not supported)."""
         _LOGGER.warning("Trigger is not supported by AMT alarm panels")
+
+
+class AMTPartitionAlarmPanel(CoordinatorEntity[AMTCoordinator], AlarmControlPanelEntity):
+    """AMT Partition Alarm Control Panel."""
+
+    _attr_has_entity_name = True
+    _attr_supported_features = AlarmControlPanelEntityFeature.ARM_AWAY
+    _attr_code_arm_required = True
+    _attr_code_format = CodeFormat.NUMBER
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+        partition_name: str,
+    ) -> None:
+        """Initialize the partition alarm control panel."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._partition_name = partition_name
+        self._attr_unique_id = f"{entry.entry_id}_partition_{partition_name.lower()}_panel"
+        self._attr_name = f"Partição {partition_name}"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information."""
+        model_name = "AMT"
+        if self.coordinator.data:
+            model_name = self.coordinator.data.get(DATA_MODEL_NAME, "AMT")
+
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._entry.entry_id)},
+            name=f"{ENTITY_PREFIX.upper()} (porta {self._entry.data[CONF_PORT]})",
+            manufacturer="Intelbras",
+            model=model_name,
+        )
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        if not self.coordinator.data:
+            return False
+        return self.coordinator.data.get(DATA_CONNECTED, False)
+
+    @property
+    def alarm_state(self) -> AlarmControlPanelState | None:
+        """Return the state of the partition."""
+        if not self.coordinator.data:
+            return None
+
+        if not self.coordinator.data.get(DATA_CONNECTED, False):
+            return None
+
+        partitions = self.coordinator.data.get(DATA_PARTITIONS, {})
+        partition_data = partitions.get(self._partition_name, {})
+
+        armed = partition_data.get("armed", False)
+        triggered = partition_data.get("triggered", False)
+        siren_on = self.coordinator.data.get(DATA_SIREN, False)
+
+        # Show TRIGGERED if siren is on or partition is armed and triggered
+        if siren_on or (armed and triggered):
+            return AlarmControlPanelState.TRIGGERED
+
+        if armed:
+            if partition_data.get("stay", False):
+                return AlarmControlPanelState.ARMED_HOME
+            return AlarmControlPanelState.ARMED_AWAY
+
+        return AlarmControlPanelState.DISARMED
+
+    async def async_alarm_disarm(self, code: str | None = None) -> None:
+        """Disarm the partition."""
+        await self.coordinator.async_disarm_partition(self._partition_name, code)
+
+    async def async_alarm_arm_away(self, code: str | None = None) -> None:
+        """Arm the partition."""
+        await self.coordinator.async_arm_partition(self._partition_name, code)

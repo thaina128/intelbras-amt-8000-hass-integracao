@@ -14,17 +14,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
-    DATA_ARMED,
     DATA_CONNECTED,
     DATA_MODEL_NAME,
-    DATA_PARTITIONS,
     DATA_PGMS,
     DATA_SIREN,
     DOMAIN,
     ENTITY_PREFIX,
-    MAX_PARTITIONS,
     MAX_PGMS,
-    PARTITION_NAMES,
 )
 from .coordinator import AMTCoordinator
 
@@ -43,14 +39,6 @@ async def async_setup_entry(
 
     # Siren switch
     entities.append(AMTSirenSwitch(coordinator, entry))
-
-    # General arm switch
-    entities.append(AMTArmSwitch(coordinator, entry))
-
-    # Partition switches
-    for partition_idx in range(MAX_PARTITIONS):
-        partition_name = PARTITION_NAMES[partition_idx]
-        entities.append(AMTPartitionSwitch(coordinator, entry, partition_name))
 
     # PGM switches (1-19)
     for pgm_num in range(1, MAX_PGMS + 1):
@@ -124,86 +112,6 @@ class AMTSirenSwitch(AMTSwitchBase):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn siren off."""
         await self.coordinator.async_siren_off()
-
-
-class AMTArmSwitch(AMTSwitchBase):
-    """General arm/disarm switch."""
-
-    _attr_name = "Armar"
-    _attr_icon = "mdi:shield-lock"
-
-    def __init__(
-        self,
-        coordinator: AMTCoordinator,
-        entry: ConfigEntry,
-    ) -> None:
-        """Initialize the arm switch."""
-        super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_arm_switch"
-
-    @property
-    def is_on(self) -> bool | None:
-        """Return True if armed."""
-        if not self.coordinator.data:
-            return None
-        return self.coordinator.data.get(DATA_ARMED, False)
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Arm the alarm."""
-        await self.coordinator.async_arm()
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Disarm the alarm."""
-        await self.coordinator.async_disarm()
-
-
-class AMTPartitionSwitch(AMTSwitchBase):
-    """Partition arm/disarm switch."""
-
-    _attr_icon = "mdi:shield-lock-outline"
-
-    def __init__(
-        self,
-        coordinator: AMTCoordinator,
-        entry: ConfigEntry,
-        partition_name: str,
-    ) -> None:
-        """Initialize the partition switch."""
-        super().__init__(coordinator, entry)
-        self._partition_name = partition_name
-        self._attr_unique_id = f"{entry.entry_id}_partition_{partition_name.lower()}_switch"
-        self._attr_name = f"Particao {partition_name}"
-
-    @property
-    def is_on(self) -> bool | None:
-        """Return True if partition is armed."""
-        if not self.coordinator.data:
-            return None
-
-        partitions = self.coordinator.data.get(DATA_PARTITIONS, {})
-        partition_data = partitions.get(self._partition_name, {})
-        return partition_data.get("armed", False)
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        if not self.coordinator.data:
-            return {}
-
-        partitions = self.coordinator.data.get(DATA_PARTITIONS, {})
-        partition_data = partitions.get(self._partition_name, {})
-        return {
-            "stay": partition_data.get("stay", False),
-            "triggered": partition_data.get("triggered", False),
-        }
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Arm the partition."""
-        await self.coordinator.async_arm_partition(self._partition_name)
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Disarm the partition."""
-        await self.coordinator.async_disarm_partition(self._partition_name)
 
 
 class AMTPGMSwitch(AMTSwitchBase):

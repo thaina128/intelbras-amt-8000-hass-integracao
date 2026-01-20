@@ -11,9 +11,21 @@ This is a **Home Assistant custom integration** distributed via HACS (Home Assis
 ### Before Pushing Changes
 
 1. Update version in `custom_components/intelbras_amt/manifest.json`
-2. Commit all changes
-3. Push to GitHub
-4. Create a GitHub release with a version tag
+2. Update `CHANGELOG.md` with changes (follow Keep a Changelog format)
+3. Update `README.md` if features/entities/configuration changed
+4. Commit all changes
+5. Push to GitHub
+6. Create a GitHub release with a version tag
+
+### Documentation Requirements
+
+**Every code change MUST include:**
+- `CHANGELOG.md` update with the changes made
+- `README.md` update if:
+  - New entities added/removed
+  - Configuration options changed
+  - New features added
+  - Behavior changed
 
 ### Creating a Release
 
@@ -31,7 +43,7 @@ Then go to GitHub and create a release from the tag:
 1. Go to https://github.com/robsonfelix/intelbras-amt-hass-integration/releases
 2. Click "Create a new release"
 3. Select the tag (e.g., `v1.0.0`)
-4. Add release notes
+4. Add release notes (copy from CHANGELOG.md)
 5. Publish release
 
 ### Version Numbering
@@ -58,11 +70,11 @@ custom_components/intelbras_amt/
 ├── server.py             # AMT TCP server (receives panel connections)
 ├── coordinator.py        # DataUpdateCoordinator
 ├── config_flow.py        # UI configuration
-├── alarm_control_panel.py
+├── alarm_control_panel.py # Main panel + partition panels
 ├── binary_sensor.py
 ├── sensor.py
-├── switch.py             # Siren, PGMs, partitions, arm/disarm
-├── button.py             # Bypass open zones
+├── switch.py             # Siren, PGMs
+├── button.py             # Bypass open zones, arm stay
 ├── strings.json
 └── translations/
     ├── en.json

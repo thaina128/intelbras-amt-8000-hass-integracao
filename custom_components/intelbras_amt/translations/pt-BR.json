@@ -2,36 +2,25 @@
   "config": {
     "step": {
       "user": {
-        "title": "Conectar ao Painel AMT",
-        "description": "Digite os dados de conexão do seu painel de alarme Intelbras AMT.",
+        "title": "Alarme Intelbras AMT",
+        "description": "Configure o servidor para receber conexões da central AMT. A central deve ser configurada para conectar ao IP do Home Assistant nesta porta.",
         "data": {
-          "host": "Host",
           "port": "Porta",
-          "password": "Senha Master"
+          "password": "Senha"
         },
         "data_description": {
-          "host": "Endereço IP ou hostname do painel de alarme",
-          "port": "Porta TCP (padrão: 9015)",
-          "password": "Senha master (6 dígitos)"
-        }
-      },
-      "partitions": {
-        "title": "Senhas das Partições (Opcional)",
-        "description": "Digite as senhas das partições individuais. Deixe vazio para usar a senha master.",
-        "data": {
-          "password_a": "Senha Partição A",
-          "password_b": "Senha Partição B",
-          "password_c": "Senha Partição C",
-          "password_d": "Senha Partição D"
+          "port": "Porta TCP para escutar (padrão: 9009)",
+          "password": "Senha de acesso remoto (4-6 dígitos)"
         }
       }
     },
     "error": {
-      "cannot_connect": "Falha ao conectar com o painel de alarme",
+      "invalid_port": "Número de porta inválido",
+      "invalid_password": "A senha deve ter pelo menos 4 dígitos",
       "unknown": "Erro inesperado"
     },
     "abort": {
-      "already_configured": "Este painel de alarme já está configurado"
+      "already_configured": "Esta porta já está configurada"
     }
   },
   "options": {
@@ -39,11 +28,7 @@
       "init": {
         "title": "Opções do AMT",
         "data": {
-          "scan_interval": "Intervalo de Atualização (segundos)",
-          "password_a": "Senha Partição A",
-          "password_b": "Senha Partição B",
-          "password_c": "Senha Partição C",
-          "password_d": "Senha Partição D"
+          "scan_interval": "Intervalo de Atualização (segundos)"
         }
       }
     }

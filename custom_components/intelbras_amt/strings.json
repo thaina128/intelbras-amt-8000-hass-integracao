@@ -12,16 +12,6 @@
           "port": "TCP port to listen on (default: 9009)",
           "password": "Remote access password (4-6 digits)"
         }
-      },
-      "partitions": {
-        "title": "Partition Passwords (Optional)",
-        "description": "Enter passwords for individual partitions if needed. Leave empty to use the main password.",
-        "data": {
-          "password_a": "Partition A Password",
-          "password_b": "Partition B Password",
-          "password_c": "Partition C Password",
-          "password_d": "Partition D Password"
-        }
       }
     },
     "error": {
@@ -38,11 +28,7 @@
       "init": {
         "title": "AMT Options",
         "data": {
-          "scan_interval": "Scan Interval (seconds)",
-          "password_a": "Partition A Password",
-          "password_b": "Partition B Password",
-          "password_c": "Partition C Password",
-          "password_d": "Partition D Password"
+          "scan_interval": "Scan Interval (seconds)"
         }
       }
     }
