@@ -1,6 +1,14 @@
 # Integração Intelbras AMT para Home Assistant
 
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![GitHub Release](https://img.shields.io/github/release/robsonfelix/intelbras-amt-hass-integration.svg)](https://github.com/robsonfelix/intelbras-amt-hass-integration/releases)
+[![License](https://img.shields.io/github/license/robsonfelix/intelbras-amt-hass-integration.svg)](LICENSE)
+
 Integração nativa para Home Assistant dos sistemas de alarme Intelbras AMT 4010, AMT 2018 e AMT 1016.
+
+## Adicionar ao Home Assistant
+
+[![Abrir sua instância do Home Assistant e adicionar este repositório ao HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=robsonfelix&repository=intelbras-amt-hass-integration&category=integration)
 
 ## Funcionalidades
 
@@ -13,27 +21,29 @@ Integração nativa para Home Assistant dos sistemas de alarme Intelbras AMT 401
 
 ## Modelos Suportados
 
-| Modelo | Zonas | Partições |
-|--------|-------|-----------|
-| AMT 4010 SMART | 64 | 4 |
-| AMT 2018 | 18 | 4 |
-| AMT 1016 | 16 | 4 |
+| Modelo | Zonas | Partições | Status |
+|--------|-------|-----------|--------|
+| AMT 4010 SMART | 64 | 4 | ✅ Testado |
+| AMT 2018 | 18 | 4 | 🔄 Deve funcionar |
+| AMT 1016 | 16 | 4 | 🔄 Deve funcionar |
 
 ## Instalação
 
 ### HACS (Recomendado)
 
-1. Abra o HACS no Home Assistant
-2. Clique em "Integrações"
-3. Clique no menu ⋮ (três pontos) → "Repositórios personalizados"
-4. Adicione `robsonfelix/intelbras-amt-hass-integration` como "Integração"
-5. Procure por "Intelbras AMT" e clique em "Instalar"
-6. Reinicie o Home Assistant
+1. Clique no botão acima **"Adicionar repositório ao HACS"**, ou:
+2. Abra o HACS no Home Assistant
+3. Clique em "Integrações"
+4. Clique no menu ⋮ (três pontos) → "Repositórios personalizados"
+5. Adicione `robsonfelix/intelbras-amt-hass-integration` como "Integração"
+6. Procure por "Intelbras AMT" e clique em "Instalar"
+7. Reinicie o Home Assistant
 
 ### Instalação Manual
 
-1. Copie a pasta `custom_components/intelbras_amt` para o diretório `config/custom_components/` do seu Home Assistant
-2. Reinicie o Home Assistant
+1. Baixe a última versão do [GitHub Releases](https://github.com/robsonfelix/intelbras-amt-hass-integration/releases)
+2. Copie a pasta `custom_components/intelbras_amt` para o diretório `config/custom_components/` do seu Home Assistant
+3. Reinicie o Home Assistant
 
 ## Configuração
 
@@ -45,6 +55,13 @@ Integração nativa para Home Assistant dos sistemas de alarme Intelbras AMT 401
    - **Porta**: Porta TCP (padrão: `9015`)
    - **Senha Master**: Senha master de 6 dígitos
 5. Opcionalmente configure as senhas das partições
+
+## Conexão de Hardware
+
+O painel AMT conecta via TCP/IP na porta 9015. Certifique-se de que:
+- O módulo Ethernet do alarme está configurado e conectado à rede
+- A porta 9015 está acessível a partir do Home Assistant
+- Você possui a senha master do painel
 
 ## Entidades Criadas
 
@@ -77,15 +94,6 @@ Integração nativa para Home Assistant dos sistemas de alarme Intelbras AMT 401
 - `button.amt_desativar_pgm_N` - Desativar PGM N
 - `button.amt_anular_zonas_abertas` - Anular todas as zonas abertas
 
-## Protocolo
-
-Esta integração se comunica diretamente com o painel AMT via TCP na porta 9015 usando o protocolo proprietário da Intelbras.
-
-### Formato do Frame
-```
-[Tamanho] [0xe9] [0x21] [SENHA_BYTES] [COMANDO] [0x21] [XOR_CHECKSUM]
-```
-
 ## Opções
 
 | Opção | Padrão | Descrição |
@@ -104,16 +112,41 @@ Esta integração se comunica diretamente com o painel AMT via TCP na porta 9015
 - Verifique os logs do Home Assistant para erros de conexão
 - A integração reconecta automaticamente em caso de perda de conexão
 
-## Desenvolvimento
+### Debug Logging
 
-Esta integração segue as melhores práticas de desenvolvimento do Home Assistant:
-- Usa `DataUpdateCoordinator` para polling eficiente
-- Implementa comunicação TCP assíncrona
-- Reconecta automaticamente em caso de falhas
+Adicione ao `configuration.yaml`:
+
+```yaml
+logger:
+  default: info
+  logs:
+    custom_components.intelbras_amt: debug
+```
+
+## Protocolo
+
+Esta integração se comunica diretamente com o painel AMT via TCP na porta 9015 usando o protocolo proprietário da Intelbras.
+
+### Formato do Frame
+```
+[Tamanho] [0xe9] [0x21] [SENHA_BYTES] [COMANDO] [0x21] [XOR_CHECKSUM]
+```
+
+## Contribuindo
+
+Contribuições são bem-vindas! Por favor:
+1. Faça um fork do repositório
+2. Crie uma branch para sua feature
+3. Envie um pull request
+
+Se você tem um modelo diferente de central AMT e quer ajudar a adicionar suporte, abra uma issue com:
+- Nome do modelo da sua central
+- Logs de debug da integração
+- Qualquer documentação do protocolo que você tenha
 
 ## Licença
 
-MIT License
+Este projeto está licenciado sob a MIT License - veja o arquivo [LICENSE](LICENSE) para detalhes.
 
 ## Créditos
 
