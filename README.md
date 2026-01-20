@@ -1,120 +1,120 @@
-# Intelbras AMT Home Assistant Integration
+# Integração Intelbras AMT para Home Assistant
 
-Native Home Assistant integration for Intelbras AMT 4010, AMT 2018, and AMT 1016 alarm systems.
+Integração nativa para Home Assistant dos sistemas de alarme Intelbras AMT 4010, AMT 2018 e AMT 1016.
 
-## Features
+## Funcionalidades
 
-- **Alarm Control Panel**: Arm/disarm the alarm, stay mode
-- **Zone Monitoring**: All zones (up to 64) with open, violated, and bypassed status
-- **Partition Control**: Individual arm/disarm for partitions A, B, C, D
-- **PGM Control**: Activate/deactivate PGM outputs 1, 2, 3
-- **Status Sensors**: Battery level, AC power, siren, problems
-- **Auto-reconnect**: Automatic reconnection on connection loss
+- **Painel de Alarme**: Armar/desarmar, modo stay
+- **Monitoramento de Zonas**: Todas as zonas (até 64) com status aberta, violada e anulada
+- **Controle de Partições**: Armar/desarmar individual para partições A, B, C, D
+- **Controle de PGM**: Ativar/desativar saídas PGM 1, 2, 3
+- **Sensores de Status**: Nível da bateria, energia AC, sirene, problemas
+- **Reconexão Automática**: Reconecta automaticamente em caso de perda de conexão
 
-## Supported Models
+## Modelos Suportados
 
-| Model | Zones | Partitions |
-|-------|-------|------------|
+| Modelo | Zonas | Partições |
+|--------|-------|-----------|
 | AMT 4010 SMART | 64 | 4 |
 | AMT 2018 | 18 | 4 |
 | AMT 1016 | 16 | 4 |
 
-## Installation
+## Instalação
 
-### HACS (Recommended)
+### HACS (Recomendado)
 
-1. Open HACS in Home Assistant
-2. Click on "Integrations"
-3. Click the "+" button
-4. Search for "Intelbras AMT"
-5. Click "Install"
-6. Restart Home Assistant
+1. Abra o HACS no Home Assistant
+2. Clique em "Integrações"
+3. Clique no menu ⋮ (três pontos) → "Repositórios personalizados"
+4. Adicione `robsonfelix/intelbras-amt-hass-integration` como "Integração"
+5. Procure por "Intelbras AMT" e clique em "Instalar"
+6. Reinicie o Home Assistant
 
-### Manual Installation
+### Instalação Manual
 
-1. Copy the `custom_components/intelbras_amt` folder to your Home Assistant `config/custom_components/` directory
-2. Restart Home Assistant
+1. Copie a pasta `custom_components/intelbras_amt` para o diretório `config/custom_components/` do seu Home Assistant
+2. Reinicie o Home Assistant
 
-## Configuration
+## Configuração
 
-1. Go to **Settings** → **Devices & Services**
-2. Click **+ Add Integration**
-3. Search for "Intelbras AMT"
-4. Enter:
-   - **Host**: IP address of your alarm panel (e.g., `192.168.1.100`)
-   - **Port**: TCP port (default: `9015`)
-   - **Master Password**: 6-digit master password
-5. Optionally configure partition passwords
+1. Vá em **Configurações** → **Dispositivos e Serviços**
+2. Clique em **+ Adicionar Integração**
+3. Procure por "Intelbras AMT"
+4. Preencha:
+   - **Host**: Endereço IP do painel de alarme (ex: `192.168.1.100`)
+   - **Porta**: Porta TCP (padrão: `9015`)
+   - **Senha Master**: Senha master de 6 dígitos
+5. Opcionalmente configure as senhas das partições
 
-## Entities Created
+## Entidades Criadas
 
-### Alarm Control Panel
-- `alarm_control_panel.amt_central` - Main alarm panel
+### Painel de Alarme
+- `alarm_control_panel.amt_central` - Painel principal do alarme
 
-### Binary Sensors
-- `binary_sensor.amt_zona_N` - Zone N open status (1-64)
-- `binary_sensor.amt_zona_N_violada` - Zone N violated status
-- `binary_sensor.amt_zona_N_anulada` - Zone N bypassed status
-- `binary_sensor.amt_particao_X` - Partition X armed status (A/B/C/D)
-- `binary_sensor.amt_pgm_N` - PGM N status (1-3)
-- `binary_sensor.amt_energia_ac` - AC power status
-- `binary_sensor.amt_bateria_conectada` - Battery connected status
-- `binary_sensor.amt_sirene` - Siren status
-- `binary_sensor.amt_problema` - Problem indicator
+### Sensores Binários
+- `binary_sensor.amt_zona_N` - Status da zona N aberta (1-64)
+- `binary_sensor.amt_zona_N_violada` - Status da zona N violada
+- `binary_sensor.amt_zona_N_anulada` - Status da zona N anulada (bypass)
+- `binary_sensor.amt_particao_X` - Status da partição X armada (A/B/C/D)
+- `binary_sensor.amt_pgm_N` - Status do PGM N (1-3)
+- `binary_sensor.amt_energia_ac` - Status da energia AC
+- `binary_sensor.amt_bateria_conectada` - Status da bateria conectada
+- `binary_sensor.amt_sirene` - Status da sirene
+- `binary_sensor.amt_problema` - Indicador de problema
 
-### Sensors
-- `sensor.amt_nivel_da_bateria` - Battery level (%)
-- `sensor.amt_modelo` - Model name
-- `sensor.amt_firmware` - Firmware version
+### Sensores
+- `sensor.amt_nivel_da_bateria` - Nível da bateria (%)
+- `sensor.amt_modelo` - Nome do modelo
+- `sensor.amt_firmware` - Versão do firmware
 
-### Buttons
-- `button.amt_armar` - Arm the alarm
-- `button.amt_desarmar` - Disarm the alarm
-- `button.amt_armar_stay` - Arm in stay mode
-- `button.amt_armar_particao_X` - Arm partition X
-- `button.amt_desarmar_particao_X` - Disarm partition X
-- `button.amt_ativar_pgm_N` - Activate PGM N
-- `button.amt_desativar_pgm_N` - Deactivate PGM N
-- `button.amt_anular_zonas_abertas` - Bypass all open zones
+### Botões
+- `button.amt_armar` - Armar o alarme
+- `button.amt_desarmar` - Desarmar o alarme
+- `button.amt_armar_stay` - Armar em modo stay
+- `button.amt_armar_particao_X` - Armar partição X
+- `button.amt_desarmar_particao_X` - Desarmar partição X
+- `button.amt_ativar_pgm_N` - Ativar PGM N
+- `button.amt_desativar_pgm_N` - Desativar PGM N
+- `button.amt_anular_zonas_abertas` - Anular todas as zonas abertas
 
-## Protocol
+## Protocolo
 
-This integration communicates directly with the AMT alarm panel via TCP on port 9015 using the Intelbras proprietary protocol.
+Esta integração se comunica diretamente com o painel AMT via TCP na porta 9015 usando o protocolo proprietário da Intelbras.
 
-### Frame Format
+### Formato do Frame
 ```
-[Length] [0xe9] [0x21] [PASSWORD_BYTES] [COMMAND] [0x21] [XOR_CHECKSUM]
+[Tamanho] [0xe9] [0x21] [SENHA_BYTES] [COMANDO] [0x21] [XOR_CHECKSUM]
 ```
 
-## Options
+## Opções
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| scan_interval | 1 | Polling interval in seconds |
+| Opção | Padrão | Descrição |
+|-------|--------|-----------|
+| scan_interval | 1 | Intervalo de atualização em segundos |
 
-## Troubleshooting
+## Solução de Problemas
 
-### Cannot Connect
-- Verify the IP address is correct
-- Ensure port 9015 is accessible
-- Check that the master password is correct
-- Verify the alarm panel is connected to the network
+### Não Consegue Conectar
+- Verifique se o endereço IP está correto
+- Certifique-se de que a porta 9015 está acessível
+- Confirme que a senha master está correta
+- Verifique se o painel de alarme está conectado à rede
 
-### Entities Unavailable
-- Check the Home Assistant logs for connection errors
-- The integration will automatically reconnect on connection loss
+### Entidades Indisponíveis
+- Verifique os logs do Home Assistant para erros de conexão
+- A integração reconecta automaticamente em caso de perda de conexão
 
-## Development
+## Desenvolvimento
 
-This integration follows Home Assistant development best practices:
-- Uses `DataUpdateCoordinator` for efficient polling
-- Implements proper async TCP communication
-- Auto-reconnects on connection failures
+Esta integração segue as melhores práticas de desenvolvimento do Home Assistant:
+- Usa `DataUpdateCoordinator` para polling eficiente
+- Implementa comunicação TCP assíncrona
+- Reconecta automaticamente em caso de falhas
 
-## License
+## Licença
 
 MIT License
 
-## Credits
+## Créditos
 
-Based on reverse engineering of the Intelbras AMT protocol.
+Baseado em engenharia reversa do protocolo Intelbras AMT.
