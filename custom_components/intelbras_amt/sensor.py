@@ -21,6 +21,9 @@ from .const import (
     DATA_CONNECTED,
     DATA_FIRMWARE,
     DATA_MODEL_NAME,
+    DATA_ZONES_BYPASSED_COUNT,
+    DATA_ZONES_OPEN_COUNT,
+    DATA_ZONES_VIOLATED_COUNT,
     DOMAIN,
     ENTITY_PREFIX,
 )
@@ -41,6 +44,9 @@ async def async_setup_entry(
         AMTBatteryLevelSensor(coordinator, entry),
         AMTModelSensor(coordinator, entry),
         AMTFirmwareSensor(coordinator, entry),
+        AMTZonesOpenCountSensor(coordinator, entry),
+        AMTZonesViolatedCountSensor(coordinator, entry),
+        AMTZonesBypassedCountSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -152,3 +158,77 @@ class AMTFirmwareSensor(AMTSensorBase):
         if not self.coordinator.data:
             return None
         return self.coordinator.data.get(DATA_FIRMWARE)
+
+
+class AMTZonesOpenCountSensor(AMTSensorBase):
+    """Zones open count sensor."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:door-open"
+    _attr_name = "Zonas Abertas"
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the zones open count sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_zones_open_count"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the number of open zones."""
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get(DATA_ZONES_OPEN_COUNT, 0)
+
+
+class AMTZonesViolatedCountSensor(AMTSensorBase):
+    """Zones violated count sensor."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:alert-circle"
+    _attr_name = "Zonas Violadas"
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the zones violated count sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_zones_violated_count"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the number of violated zones."""
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get(DATA_ZONES_VIOLATED_COUNT, 0)
+
+
+class AMTZonesBypassedCountSensor(AMTSensorBase):
+    """Zones bypassed count sensor."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:shield-link-variant"
+    _attr_name = "Zonas Anuladas"
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the zones bypassed count sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_zones_bypassed_count"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the number of bypassed zones."""
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get(DATA_ZONES_BYPASSED_COUNT, 0)

@@ -131,3 +131,13 @@ class AMTCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             open_zones = self.data.get(DATA_ZONES_OPEN, [])
             await self.client.bypass_open_zones(open_zones)
             await self.async_request_refresh()
+
+    async def async_siren_on(self) -> None:
+        """Turn siren on."""
+        await self.client.siren_on()
+        await self.async_request_refresh()
+
+    async def async_siren_off(self) -> None:
+        """Turn siren off."""
+        await self.client.siren_off()
+        await self.async_request_refresh()

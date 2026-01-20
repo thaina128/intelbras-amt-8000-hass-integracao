@@ -20,34 +20,56 @@ from .const import (
     CMD_DISARM_PARTITION_D,
     CMD_PGM_OFF_PREFIX,
     CMD_PGM_ON_PREFIX,
+    CMD_SIREN_OFF,
+    CMD_SIREN_ON,
     CMD_STAY,
     CMD_STATUS,
     CONNECTION_TIMEOUT,
     DATA_AC_POWER,
     DATA_ARMED,
+    DATA_AUX_OVERLOAD,
+    DATA_BATTERY_ABSENT,
     DATA_BATTERY_CONNECTED,
     DATA_BATTERY_LEVEL,
+    DATA_BATTERY_LOW,
+    DATA_BATTERY_SHORT,
+    DATA_COMM_FAILURE,
     DATA_CONNECTED,
+    DATA_DATETIME,
     DATA_FIRMWARE,
     DATA_MAX_ZONES,
     DATA_MODEL_ID,
     DATA_MODEL_NAME,
     DATA_PARTITIONS,
     DATA_PGMS,
+    DATA_PHONE_LINE_CUT,
     DATA_PROBLEM,
     DATA_SIREN,
+    DATA_SIREN_SHORT,
+    DATA_SIREN_WIRE_CUT,
     DATA_STAY,
     DATA_TRIGGERED,
     DATA_ZONES_BYPASSED,
+    DATA_ZONES_BYPASSED_COUNT,
+    DATA_ZONES_LOW_BATTERY,
     DATA_ZONES_OPEN,
+    DATA_ZONES_OPEN_COUNT,
+    DATA_ZONES_SHORT_CIRCUIT,
+    DATA_ZONES_TAMPER,
     DATA_ZONES_VIOLATED,
+    DATA_ZONES_VIOLATED_COUNT,
     FRAME_SEPARATOR,
     FRAME_START,
+    MAX_PGMS,
     MAX_ZONES_2018,
     MAX_ZONES_4010,
+    MAX_ZONES_LOW_BATTERY,
+    MAX_ZONES_SHORT_CIRCUIT,
+    MAX_ZONES_TAMPER,
     MODEL_AMT_2018,
     MODEL_AMT_4010_SMART,
     MODEL_NAMES,
+    NACK_MESSAGES,
     OFFSET_BATTERY_LEVEL,
     OFFSET_CENTRAL_STATUS,
     OFFSET_FIRMWARE,
@@ -74,6 +96,16 @@ class AMTConnectionError(AMTClientError):
 
 class AMTProtocolError(AMTClientError):
     """Protocol error."""
+
+
+class AMTNackError(AMTClientError):
+    """NACK response received from the alarm panel."""
+
+    def __init__(self, nack_code: int, message: str | None = None) -> None:
+        """Initialize the NACK error."""
+        self.nack_code = nack_code
+        self.message = message or NACK_MESSAGES.get(nack_code, f"Erro desconhecido (0x{nack_code:02X})")
+        super().__init__(self.message)
 
 
 class AMTClient:
@@ -211,6 +243,14 @@ class AMTClient:
                     timeout=CONNECTION_TIMEOUT,
                 )
                 _LOGGER.debug("Received response: %s", response.hex())
+
+                # Check for NACK response (error code in the response)
+                if len(response) >= 3 and response[0] == FRAME_START:
+                    # Check if response contains a NACK code (0xE0-0xEF)
+                    if len(response) >= 4 and 0xE0 <= response[3] <= 0xEF:
+                        nack_code = response[3]
+                        raise AMTNackError(nack_code)
+
                 return response
 
             except asyncio.TimeoutError as err:
@@ -293,14 +333,63 @@ class AMTClient:
         # Parse PGM/Siren status
         pgm_siren = data[OFFSET_PGM_SIREN_STATUS] if len(data) > OFFSET_PGM_SIREN_STATUS else 0
         siren = bool(pgm_siren & 0x01)
-        pgms = [
-            bool(pgm_siren & 0x02),  # PGM 1
-            bool(pgm_siren & 0x04),  # PGM 2
-            bool(pgm_siren & 0x08),  # PGM 3
-        ]
 
-        # Parse problem status
+        # Parse PGMs 1-19 (expanded from 3)
+        # First 3 PGMs are in the pgm_siren byte, the rest may be in additional bytes
+        pgms = [False] * MAX_PGMS
+        pgms[0] = bool(pgm_siren & 0x02)  # PGM 1
+        pgms[1] = bool(pgm_siren & 0x04)  # PGM 2
+        pgms[2] = bool(pgm_siren & 0x08)  # PGM 3
+
+        # Parse additional PGM bytes if available (bytes 47-49 for PGMs 4-19)
+        if len(data) > 47:
+            pgm_byte1 = data[47]
+            for i in range(8):
+                if 3 + i < MAX_PGMS:
+                    pgms[3 + i] = bool(pgm_byte1 & (1 << i))
+        if len(data) > 48:
+            pgm_byte2 = data[48]
+            for i in range(8):
+                if 11 + i < MAX_PGMS:
+                    pgms[11 + i] = bool(pgm_byte2 & (1 << i))
+
+        # Parse problem status - general problem flag
         problem = bool(central_status & 0x10)
+
+        # Parse detailed problem status from power_status and additional bytes
+        # These are based on typical AMT protocol definitions
+        battery_low = bool(power_status & 0x02)
+        battery_absent = not battery_connected
+        battery_short = bool(power_status & 0x08)
+        aux_overload = bool(power_status & 0x10)
+
+        # Siren and communication problems (may be in additional bytes)
+        siren_wire_cut = False
+        siren_short = False
+        phone_line_cut = False
+        comm_failure = False
+        if len(data) > 37:
+            problem_byte = data[37]
+            siren_wire_cut = bool(problem_byte & 0x01)
+            siren_short = bool(problem_byte & 0x02)
+            phone_line_cut = bool(problem_byte & 0x04)
+            comm_failure = bool(problem_byte & 0x08)
+
+        # Parse zone lists
+        zones_open = self._parse_zones(data, OFFSET_ZONES_OPEN_START, max_zones)
+        zones_violated = self._parse_zones(data, OFFSET_ZONES_VIOLATED_START, max_zones)
+        zones_bypassed = self._parse_zones(data, OFFSET_ZONES_BYPASSED_START, max_zones)
+
+        # Calculate zone counts
+        zones_open_count = sum(zones_open)
+        zones_violated_count = sum(zones_violated)
+        zones_bypassed_count = sum(zones_bypassed)
+
+        # Initialize empty arrays for tamper, short-circuit, and low-battery zones
+        # These would be populated from extended status commands if available
+        zones_tamper = [False] * MAX_ZONES_TAMPER
+        zones_short_circuit = [False] * MAX_ZONES_SHORT_CIRCUIT
+        zones_low_battery = [False] * MAX_ZONES_LOW_BATTERY
 
         return {
             DATA_CONNECTED: True,
@@ -308,9 +397,15 @@ class AMTClient:
             DATA_MODEL_NAME: model_name,
             DATA_MAX_ZONES: max_zones,
             DATA_FIRMWARE: firmware,
-            DATA_ZONES_OPEN: self._parse_zones(data, OFFSET_ZONES_OPEN_START, max_zones),
-            DATA_ZONES_VIOLATED: self._parse_zones(data, OFFSET_ZONES_VIOLATED_START, max_zones),
-            DATA_ZONES_BYPASSED: self._parse_zones(data, OFFSET_ZONES_BYPASSED_START, max_zones),
+            DATA_ZONES_OPEN: zones_open,
+            DATA_ZONES_VIOLATED: zones_violated,
+            DATA_ZONES_BYPASSED: zones_bypassed,
+            DATA_ZONES_TAMPER: zones_tamper,
+            DATA_ZONES_SHORT_CIRCUIT: zones_short_circuit,
+            DATA_ZONES_LOW_BATTERY: zones_low_battery,
+            DATA_ZONES_OPEN_COUNT: zones_open_count,
+            DATA_ZONES_VIOLATED_COUNT: zones_violated_count,
+            DATA_ZONES_BYPASSED_COUNT: zones_bypassed_count,
             DATA_PARTITIONS: partitions,
             DATA_ARMED: armed,
             DATA_STAY: stay,
@@ -321,6 +416,15 @@ class AMTClient:
             DATA_SIREN: siren,
             DATA_PGMS: pgms,
             DATA_PROBLEM: problem,
+            DATA_BATTERY_LOW: battery_low,
+            DATA_BATTERY_ABSENT: battery_absent,
+            DATA_BATTERY_SHORT: battery_short,
+            DATA_AUX_OVERLOAD: aux_overload,
+            DATA_SIREN_WIRE_CUT: siren_wire_cut,
+            DATA_SIREN_SHORT: siren_short,
+            DATA_PHONE_LINE_CUT: phone_line_cut,
+            DATA_COMM_FAILURE: comm_failure,
+            DATA_DATETIME: None,  # Would be populated from extended status
         }
 
     async def get_status(self) -> dict[str, Any]:
@@ -370,19 +474,35 @@ class AMTClient:
 
     async def activate_pgm(self, pgm_number: int) -> None:
         """Activate a PGM output."""
-        if pgm_number < 1 or pgm_number > 3:
+        if pgm_number < 1 or pgm_number > MAX_PGMS:
             raise ValueError(f"Invalid PGM number: {pgm_number}")
 
-        command = CMD_PGM_ON_PREFIX + bytes([0x30 + pgm_number])  # '1', '2', or '3'
+        # Format PGM number as two-digit ASCII (01-19)
+        if pgm_number < 10:
+            command = CMD_PGM_ON_PREFIX + bytes([0x30, 0x30 + pgm_number])  # '01' to '09'
+        else:
+            command = CMD_PGM_ON_PREFIX + bytes([0x31, 0x30 + (pgm_number - 10)])  # '10' to '19'
         await self._send_command(command)
 
     async def deactivate_pgm(self, pgm_number: int) -> None:
         """Deactivate a PGM output."""
-        if pgm_number < 1 or pgm_number > 3:
+        if pgm_number < 1 or pgm_number > MAX_PGMS:
             raise ValueError(f"Invalid PGM number: {pgm_number}")
 
-        command = CMD_PGM_OFF_PREFIX + bytes([0x30 + pgm_number])  # '1', '2', or '3'
+        # Format PGM number as two-digit ASCII (01-19)
+        if pgm_number < 10:
+            command = CMD_PGM_OFF_PREFIX + bytes([0x30, 0x30 + pgm_number])  # '01' to '09'
+        else:
+            command = CMD_PGM_OFF_PREFIX + bytes([0x31, 0x30 + (pgm_number - 10)])  # '10' to '19'
         await self._send_command(command)
+
+    async def siren_on(self) -> None:
+        """Turn siren on."""
+        await self._send_command(CMD_SIREN_ON)
+
+    async def siren_off(self) -> None:
+        """Turn siren off."""
+        await self._send_command(CMD_SIREN_OFF)
 
     async def bypass_zones(self, zone_mask: list[bool]) -> None:
         """Bypass zones specified in the mask."""

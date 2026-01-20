@@ -40,6 +40,33 @@ CMD_DISARM_PARTITION_D: Final = bytes([0x44, 0x44])  # 'DD'
 CMD_PGM_ON_PREFIX: Final = bytes([0x50, 0x4C])  # 'PL'
 CMD_PGM_OFF_PREFIX: Final = bytes([0x50, 0x44])  # 'PD'
 CMD_BYPASS: Final = bytes([0x42])  # 'B'
+CMD_SIREN_ON: Final = bytes([0x43])  # 'C' - Turn siren on
+CMD_SIREN_OFF: Final = bytes([0x63])  # 'c' - Turn siren off
+
+# NACK error codes
+NACK_INVALID_PACKET: Final = 0xE0
+NACK_WRONG_PASSWORD: Final = 0xE1
+NACK_INVALID_COMMAND: Final = 0xE2
+NACK_NOT_PARTITIONED: Final = 0xE3
+NACK_ZONES_OPEN: Final = 0xE4
+NACK_DISCONTINUED: Final = 0xE5
+NACK_NO_BYPASS_PERMISSION: Final = 0xE6
+NACK_NO_DEACTIVATE_PERMISSION: Final = 0xE7
+NACK_BYPASS_NOT_ALLOWED: Final = 0xE8
+NACK_NO_ZONES_IN_PARTITION: Final = 0xEA
+
+NACK_MESSAGES: Final = {
+    NACK_INVALID_PACKET: "Pacote inválido",
+    NACK_WRONG_PASSWORD: "Senha incorreta",
+    NACK_INVALID_COMMAND: "Comando inválido",
+    NACK_NOT_PARTITIONED: "Central não particionada",
+    NACK_ZONES_OPEN: "Zonas abertas",
+    NACK_DISCONTINUED: "Função descontinuada",
+    NACK_NO_BYPASS_PERMISSION: "Sem permissão para anular",
+    NACK_NO_DEACTIVATE_PERMISSION: "Sem permissão para desativar",
+    NACK_BYPASS_NOT_ALLOWED: "Anulação não permitida",
+    NACK_NO_ZONES_IN_PARTITION: "Sem zonas na partição",
+}
 
 # Response byte offsets (AMT 4010 - 0x37 response)
 # After removing frame header, data starts at index 0
@@ -86,7 +113,12 @@ MAX_ZONES_4010: Final = 64
 MAX_ZONES_2018: Final = 18
 MAX_ZONES_1016: Final = 16
 MAX_PARTITIONS: Final = 4
-MAX_PGMS: Final = 3
+MAX_PGMS: Final = 19  # Expanded from 3 to 19
+
+# Zone sensor limits
+MAX_ZONES_TAMPER: Final = 18
+MAX_ZONES_SHORT_CIRCUIT: Final = 18
+MAX_ZONES_LOW_BATTERY: Final = 40
 
 # Entity prefixes
 ENTITY_PREFIX: Final = "amt"
@@ -95,6 +127,9 @@ ENTITY_PREFIX: Final = "amt"
 DATA_ZONES_OPEN: Final = "zones_open"
 DATA_ZONES_VIOLATED: Final = "zones_violated"
 DATA_ZONES_BYPASSED: Final = "zones_bypassed"
+DATA_ZONES_TAMPER: Final = "zones_tamper"
+DATA_ZONES_SHORT_CIRCUIT: Final = "zones_short_circuit"
+DATA_ZONES_LOW_BATTERY: Final = "zones_low_battery"
 DATA_MODEL_ID: Final = "model_id"
 DATA_MODEL_NAME: Final = "model_name"
 DATA_FIRMWARE: Final = "firmware"
@@ -110,6 +145,24 @@ DATA_PROBLEM: Final = "problem"
 DATA_PGMS: Final = "pgms"
 DATA_CONNECTED: Final = "connected"
 DATA_MAX_ZONES: Final = "max_zones"
+
+# Detailed problem data keys
+DATA_BATTERY_LOW: Final = "battery_low"
+DATA_BATTERY_ABSENT: Final = "battery_absent"
+DATA_BATTERY_SHORT: Final = "battery_short"
+DATA_AUX_OVERLOAD: Final = "aux_overload"
+DATA_SIREN_WIRE_CUT: Final = "siren_wire_cut"
+DATA_SIREN_SHORT: Final = "siren_short"
+DATA_PHONE_LINE_CUT: Final = "phone_line_cut"
+DATA_COMM_FAILURE: Final = "comm_failure"
+
+# Zone count data keys
+DATA_ZONES_OPEN_COUNT: Final = "zones_open_count"
+DATA_ZONES_VIOLATED_COUNT: Final = "zones_violated_count"
+DATA_ZONES_BYPASSED_COUNT: Final = "zones_bypassed_count"
+
+# Date/time from central
+DATA_DATETIME: Final = "datetime"
 
 # Partition names
 PARTITION_NAMES: Final = {

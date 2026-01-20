@@ -18,22 +18,34 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     DATA_AC_POWER,
+    DATA_AUX_OVERLOAD,
+    DATA_BATTERY_ABSENT,
     DATA_BATTERY_CONNECTED,
+    DATA_BATTERY_LOW,
+    DATA_BATTERY_SHORT,
+    DATA_COMM_FAILURE,
     DATA_CONNECTED,
     DATA_MAX_ZONES,
     DATA_MODEL_NAME,
     DATA_PARTITIONS,
-    DATA_PGMS,
+    DATA_PHONE_LINE_CUT,
     DATA_PROBLEM,
     DATA_SIREN,
+    DATA_SIREN_SHORT,
+    DATA_SIREN_WIRE_CUT,
     DATA_ZONES_BYPASSED,
+    DATA_ZONES_LOW_BATTERY,
     DATA_ZONES_OPEN,
+    DATA_ZONES_SHORT_CIRCUIT,
+    DATA_ZONES_TAMPER,
     DATA_ZONES_VIOLATED,
     DOMAIN,
     ENTITY_PREFIX,
     MAX_PARTITIONS,
-    MAX_PGMS,
     MAX_ZONES_4010,
+    MAX_ZONES_LOW_BATTERY,
+    MAX_ZONES_SHORT_CIRCUIT,
+    MAX_ZONES_TAMPER,
     PARTITION_NAMES,
 )
 from .coordinator import AMTCoordinator
@@ -62,20 +74,38 @@ async def async_setup_entry(
         entities.append(AMTZoneViolatedSensor(coordinator, entry, zone_num))
         entities.append(AMTZoneBypassedSensor(coordinator, entry, zone_num))
 
+    # Zone tamper sensors (zones 1-18)
+    for zone_num in range(1, MAX_ZONES_TAMPER + 1):
+        entities.append(AMTZoneTamperSensor(coordinator, entry, zone_num))
+
+    # Zone short-circuit sensors (zones 1-18)
+    for zone_num in range(1, MAX_ZONES_SHORT_CIRCUIT + 1):
+        entities.append(AMTZoneShortCircuitSensor(coordinator, entry, zone_num))
+
+    # Zone low battery sensors (wireless zones 1-40)
+    for zone_num in range(1, MAX_ZONES_LOW_BATTERY + 1):
+        entities.append(AMTZoneLowBatterySensor(coordinator, entry, zone_num))
+
     # Partition sensors
     for partition_idx in range(MAX_PARTITIONS):
         partition_name = PARTITION_NAMES[partition_idx]
         entities.append(AMTPartitionSensor(coordinator, entry, partition_name))
-
-    # PGM sensors
-    for pgm_num in range(1, MAX_PGMS + 1):
-        entities.append(AMTPGMSensor(coordinator, entry, pgm_num))
 
     # Status sensors
     entities.append(AMTACPowerSensor(coordinator, entry))
     entities.append(AMTBatteryConnectedSensor(coordinator, entry))
     entities.append(AMTSirenSensor(coordinator, entry))
     entities.append(AMTProblemSensor(coordinator, entry))
+
+    # Detailed problem sensors
+    entities.append(AMTBatteryLowSensor(coordinator, entry))
+    entities.append(AMTBatteryAbsentSensor(coordinator, entry))
+    entities.append(AMTBatteryShortSensor(coordinator, entry))
+    entities.append(AMTAuxOverloadSensor(coordinator, entry))
+    entities.append(AMTSirenWireCutSensor(coordinator, entry))
+    entities.append(AMTSirenShortSensor(coordinator, entry))
+    entities.append(AMTPhoneLineCutSensor(coordinator, entry))
+    entities.append(AMTCommFailureSensor(coordinator, entry))
 
     async_add_entities(entities)
 
@@ -248,33 +278,96 @@ class AMTPartitionSensor(AMTBinarySensorBase):
         }
 
 
-class AMTPGMSensor(AMTBinarySensorBase):
-    """PGM status sensor."""
+class AMTZoneTamperSensor(AMTBinarySensorBase):
+    """Zone tamper sensor."""
 
-    _attr_device_class = BinarySensorDeviceClass.POWER
+    _attr_device_class = BinarySensorDeviceClass.TAMPER
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(
         self,
         coordinator: AMTCoordinator,
         entry: ConfigEntry,
-        pgm_num: int,
+        zone_num: int,
     ) -> None:
-        """Initialize the PGM sensor."""
+        """Initialize the zone tamper sensor."""
         super().__init__(coordinator, entry)
-        self._pgm_num = pgm_num
-        self._attr_unique_id = f"{entry.entry_id}_pgm_{pgm_num}"
-        self._attr_name = f"PGM {pgm_num}"
+        self._zone_num = zone_num
+        self._attr_unique_id = f"{entry.entry_id}_zone_{zone_num}_tamper"
+        self._attr_name = f"Zona {zone_num} Tamper"
 
     @property
     def is_on(self) -> bool | None:
-        """Return True if PGM is active."""
+        """Return True if zone has tamper."""
         if not self.coordinator.data:
             return None
 
-        pgms = self.coordinator.data.get(DATA_PGMS, [])
-        pgm_idx = self._pgm_num - 1
-        if pgm_idx < len(pgms):
-            return pgms[pgm_idx]
+        zones_tamper = self.coordinator.data.get(DATA_ZONES_TAMPER, [])
+        zone_idx = self._zone_num - 1
+        if zone_idx < len(zones_tamper):
+            return zones_tamper[zone_idx]
+        return None
+
+
+class AMTZoneShortCircuitSensor(AMTBinarySensorBase):
+    """Zone short-circuit sensor."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+        zone_num: int,
+    ) -> None:
+        """Initialize the zone short-circuit sensor."""
+        super().__init__(coordinator, entry)
+        self._zone_num = zone_num
+        self._attr_unique_id = f"{entry.entry_id}_zone_{zone_num}_short_circuit"
+        self._attr_name = f"Zona {zone_num} Curto-Circuito"
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if zone has short-circuit."""
+        if not self.coordinator.data:
+            return None
+
+        zones_short = self.coordinator.data.get(DATA_ZONES_SHORT_CIRCUIT, [])
+        zone_idx = self._zone_num - 1
+        if zone_idx < len(zones_short):
+            return zones_short[zone_idx]
+        return None
+
+
+class AMTZoneLowBatterySensor(AMTBinarySensorBase):
+    """Wireless zone low battery sensor."""
+
+    _attr_device_class = BinarySensorDeviceClass.BATTERY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+        zone_num: int,
+    ) -> None:
+        """Initialize the zone low battery sensor."""
+        super().__init__(coordinator, entry)
+        self._zone_num = zone_num
+        self._attr_unique_id = f"{entry.entry_id}_zone_{zone_num}_low_battery"
+        self._attr_name = f"Zona {zone_num} Bateria Fraca"
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if wireless zone has low battery."""
+        if not self.coordinator.data:
+            return None
+
+        zones_low_batt = self.coordinator.data.get(DATA_ZONES_LOW_BATTERY, [])
+        zone_idx = self._zone_num - 1
+        if zone_idx < len(zones_low_batt):
+            return zones_low_batt[zone_idx]
         return None
 
 
@@ -371,3 +464,195 @@ class AMTProblemSensor(AMTBinarySensorBase):
         if not self.coordinator.data:
             return None
         return self.coordinator.data.get(DATA_PROBLEM, False)
+
+
+class AMTBatteryLowSensor(AMTBinarySensorBase):
+    """Battery low sensor."""
+
+    _attr_device_class = BinarySensorDeviceClass.BATTERY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_name = "Bateria Fraca"
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the battery low sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_battery_low"
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if battery is low."""
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get(DATA_BATTERY_LOW, False)
+
+
+class AMTBatteryAbsentSensor(AMTBinarySensorBase):
+    """Battery absent sensor."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_name = "Bateria Ausente"
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the battery absent sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_battery_absent"
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if battery is absent."""
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get(DATA_BATTERY_ABSENT, False)
+
+
+class AMTBatteryShortSensor(AMTBinarySensorBase):
+    """Battery short-circuit sensor."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_name = "Bateria em Curto"
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the battery short sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_battery_short"
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if battery has short-circuit."""
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get(DATA_BATTERY_SHORT, False)
+
+
+class AMTAuxOverloadSensor(AMTBinarySensorBase):
+    """Auxiliary output overload sensor."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_name = "Sobrecarga Aux"
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the aux overload sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_aux_overload"
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if aux output is overloaded."""
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get(DATA_AUX_OVERLOAD, False)
+
+
+class AMTSirenWireCutSensor(AMTBinarySensorBase):
+    """Siren wire cut sensor."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_name = "Fio Sirene Cortado"
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the siren wire cut sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_siren_wire_cut"
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if siren wire is cut."""
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get(DATA_SIREN_WIRE_CUT, False)
+
+
+class AMTSirenShortSensor(AMTBinarySensorBase):
+    """Siren short-circuit sensor."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_name = "Sirene em Curto"
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the siren short sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_siren_short"
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if siren has short-circuit."""
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get(DATA_SIREN_SHORT, False)
+
+
+class AMTPhoneLineCutSensor(AMTBinarySensorBase):
+    """Phone line cut sensor."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_name = "Linha Telefonica Cortada"
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the phone line cut sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_phone_line_cut"
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if phone line is cut."""
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get(DATA_PHONE_LINE_CUT, False)
+
+
+class AMTCommFailureSensor(AMTBinarySensorBase):
+    """Communication failure sensor."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_name = "Falha de Comunicacao"
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the communication failure sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_comm_failure"
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if there is a communication failure."""
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get(DATA_COMM_FAILURE, False)
