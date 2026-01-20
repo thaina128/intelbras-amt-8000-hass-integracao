@@ -119,7 +119,16 @@ class AMTAlarmControlPanel(CoordinatorEntity[AMTCoordinator], AlarmControlPanelE
             return AlarmControlPanelState.TRIGGERED
 
         if armed:
-            if self.coordinator.data.get(DATA_STAY, False):
+            # Check central stay flag OR any partition in stay mode
+            stay = self.coordinator.data.get(DATA_STAY, False)
+            if not stay:
+                # Check if any armed partition is in stay mode
+                partitions = self.coordinator.data.get(DATA_PARTITIONS, {})
+                for part_data in partitions.values():
+                    if part_data.get("armed") and part_data.get("stay"):
+                        stay = True
+                        break
+            if stay:
                 return AlarmControlPanelState.ARMED_HOME
             return AlarmControlPanelState.ARMED_AWAY
 
