@@ -146,16 +146,7 @@ class AMTControlServer:
             if partition:
                 # Arm specific partition
                 if stay:
-                    # Stay mode for partition - send as raw command
-                    partition_codes = {"A": "35", "B": "36", "C": "37", "D": "38"}
-                    code = partition_codes.get(partition.upper())
-                    if code:
-                        result = await self._amt_server.send_raw_command(f"41 {code}", password)
-                        return web.json_response(result)
-                    return web.json_response(
-                        {"success": False, "error": f"Invalid partition: {partition}"},
-                        status=400,
-                    )
+                    await self._amt_server.arm_stay_partition(partition.upper(), password)
                 else:
                     await self._amt_server.arm_partition(partition.upper(), password)
             else:
