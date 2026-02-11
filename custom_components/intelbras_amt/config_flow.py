@@ -8,7 +8,7 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
-from homeassistant.const import CONF_PASSWORD, CONF_PORT
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
@@ -21,10 +21,12 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Server mode: only need port and password
-# The panel connects TO Home Assistant, so no host needed
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
+        vol.Optional(
+            CONF_HOST,
+            description={"suggested_value": ""},
+        ): str,
         vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
         vol.Required(CONF_PASSWORD): str,
     }
@@ -43,6 +45,7 @@ class AMTConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            host = (user_input.get(CONF_HOST) or "").strip()
             port = user_input[CONF_PORT]
             password = user_input[CONF_PASSWORD]
 
@@ -52,15 +55,23 @@ class AMTConfigFlow(ConfigFlow, domain=DOMAIN):
             elif len(password) < 4:
                 errors["password"] = "invalid_password"
             else:
-                # Check if port is already configured
-                await self.async_set_unique_id(f"amt_server_{port}")
+                # If host is provided, run in client mode (HA connects to panel).
+                # Otherwise, run in server mode (panel connects to HA).
+                if host:
+                    await self.async_set_unique_id(f"amt_client_{host}_{port}")
+                    user_input[CONF_HOST] = host
+                else:
+                    await self.async_set_unique_id(f"amt_server_{port}")
+                    user_input.pop(CONF_HOST, None)
+
                 self._abort_if_unique_id_configured()
 
                 # Add default scan interval
                 user_input[CONF_SCAN_INTERVAL] = DEFAULT_SCAN_INTERVAL
 
+                title = f"AMT ({host}:{port})" if host else f"AMT (porta {port})"
                 return self.async_create_entry(
-                    title=f"AMT (porta {port})",
+                    title=title,
                     data=user_input,
                 )
 

@@ -22,6 +22,10 @@ from .const import (
     CMD_PGM_ON_PREFIX,
     CMD_SIREN_OFF,
     CMD_SIREN_ON,
+    CMD_STAY_PARTITION_A,
+    CMD_STAY_PARTITION_B,
+    CMD_STAY_PARTITION_C,
+    CMD_STAY_PARTITION_D,
     CMD_STAY,
     CMD_STATUS,
     CONNECTION_TIMEOUT,
@@ -284,6 +288,67 @@ class AMTClient:
 
     def _parse_response(self, data: bytes) -> dict[str, Any]:
         """Parse status response into structured data."""
+        # Some AMT firmwares return a compact status payload (9 bytes) in
+        # direct client mode. Decode the core armed/stay/trigger bits and
+        # provide safe defaults for the remaining entities.
+        if len(data) == 9:
+            status_code = data[4]
+            armed = bool(status_code & 0x01)
+            stay = bool(status_code & 0x02)
+            triggered = bool(status_code & 0x04)
+
+            partitions = {
+                "A": {"armed": armed, "stay": stay, "triggered": triggered},
+                "B": {"armed": False, "stay": False, "triggered": False},
+                "C": {"armed": False, "stay": False, "triggered": False},
+                "D": {"armed": False, "stay": False, "triggered": False},
+            }
+
+            max_zones = MAX_ZONES_4010
+            zones_open = [False] * max_zones
+            zones_violated = [False] * max_zones
+            zones_bypassed = [False] * max_zones
+            zones_tamper = [False] * MAX_ZONES_TAMPER
+            zones_short_circuit = [False] * MAX_ZONES_SHORT_CIRCUIT
+            zones_low_battery = [False] * MAX_ZONES_LOW_BATTERY
+            pgms = [False] * MAX_PGMS
+
+            return {
+                DATA_CONNECTED: True,
+                DATA_MODEL_ID: 0,
+                DATA_MODEL_NAME: "AMT (compact status)",
+                DATA_MAX_ZONES: max_zones,
+                DATA_FIRMWARE: "unknown",
+                DATA_ZONES_OPEN: zones_open,
+                DATA_ZONES_VIOLATED: zones_violated,
+                DATA_ZONES_BYPASSED: zones_bypassed,
+                DATA_ZONES_TAMPER: zones_tamper,
+                DATA_ZONES_SHORT_CIRCUIT: zones_short_circuit,
+                DATA_ZONES_LOW_BATTERY: zones_low_battery,
+                DATA_ZONES_OPEN_COUNT: 0,
+                DATA_ZONES_VIOLATED_COUNT: 0,
+                DATA_ZONES_BYPASSED_COUNT: 0,
+                DATA_PARTITIONS: partitions,
+                DATA_ARMED: armed,
+                DATA_STAY: stay,
+                DATA_TRIGGERED: triggered,
+                DATA_AC_POWER: True,
+                DATA_BATTERY_CONNECTED: True,
+                DATA_BATTERY_LEVEL: 100,
+                DATA_SIREN: False,
+                DATA_PGMS: pgms,
+                DATA_PROBLEM: False,
+                DATA_BATTERY_LOW: False,
+                DATA_BATTERY_ABSENT: False,
+                DATA_BATTERY_SHORT: False,
+                DATA_AUX_OVERLOAD: False,
+                DATA_SIREN_WIRE_CUT: False,
+                DATA_SIREN_SHORT: False,
+                DATA_PHONE_LINE_CUT: False,
+                DATA_COMM_FAILURE: False,
+                DATA_DATETIME: None,
+            }
+
         if len(data) < 47:
             raise AMTProtocolError(f"Response too short: {len(data)} bytes")
 
@@ -472,6 +537,20 @@ class AMTClient:
         pwd = password or self._partition_passwords.get(partition) or self._password
         await self._send_command(commands[partition], pwd)
 
+    async def arm_stay_partition(self, partition: str, password: str | None = None) -> None:
+        """Arm a specific partition in stay mode."""
+        commands = {
+            "A": CMD_STAY_PARTITION_A,
+            "B": CMD_STAY_PARTITION_B,
+            "C": CMD_STAY_PARTITION_C,
+            "D": CMD_STAY_PARTITION_D,
+        }
+        if partition not in commands:
+            raise ValueError(f"Invalid partition: {partition}")
+
+        pwd = password or self._partition_passwords.get(partition) or self._password
+        await self._send_command(commands[partition], pwd)
+
     async def activate_pgm(self, pgm_number: int) -> None:
         """Activate a PGM output."""
         if pgm_number < 1 or pgm_number > MAX_PGMS:
@@ -521,6 +600,36 @@ class AMTClient:
     async def bypass_open_zones(self, open_zones: list[bool]) -> None:
         """Bypass all currently open zones."""
         await self.bypass_zones(open_zones)
+
+    async def send_raw_command(
+        self,
+        command_hex: str,
+        password: str | None = None,
+    ) -> dict[str, Any]:
+        """Send raw command in hex format.
+
+        Args:
+            command_hex: Hex string, e.g. "41 35" or "4135"
+            password: Optional override password
+
+        Returns:
+            Dict with success flag and raw response hex
+        """
+        try:
+            clean = command_hex.replace(" ", "").replace("0x", "")
+            command = bytes.fromhex(clean)
+        except ValueError:
+            return {"success": False, "error": "Invalid hex command format"}
+
+        try:
+            response = await self._send_command(command, password)
+            return {
+                "success": True,
+                "command": command_hex,
+                "response_hex": response.hex(),
+            }
+        except Exception as err:  # noqa: BLE001
+            return {"success": False, "error": str(err)}
 
     async def test_connection(self) -> bool:
         """Test the connection to the alarm panel."""

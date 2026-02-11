@@ -3,12 +3,14 @@
     "step": {
       "user": {
         "title": "Alarme Intelbras AMT",
-        "description": "Configure o servidor para receber conexões da central AMT. A central deve ser configurada para conectar ao IP do Home Assistant nesta porta.",
+        "description": "Deixe o host vazio para modo servidor (a central conecta no Home Assistant). Preencha o host para modo cliente (o Home Assistant conecta na central).",
         "data": {
+          "host": "Host (opcional)",
           "port": "Porta",
           "password": "Senha"
         },
         "data_description": {
+          "host": "IP da central para modo cliente (exemplo: 192.168.15.2)",
           "port": "Porta TCP para escutar (padrão: 9009)",
           "password": "Senha de acesso remoto (4-6 dígitos)"
         }
@@ -20,7 +22,7 @@
       "unknown": "Erro inesperado"
     },
     "abort": {
-      "already_configured": "Esta porta já está configurada"
+      "already_configured": "Este host/porta já está configurado"
     }
   },
   "options": {

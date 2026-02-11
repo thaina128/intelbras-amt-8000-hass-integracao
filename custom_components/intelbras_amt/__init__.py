@@ -5,9 +5,10 @@ from __future__ import annotations
 import logging
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_PASSWORD, CONF_PORT, Platform
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, Platform
 from homeassistant.core import HomeAssistant
 
+from .client import AMTClient
 from .control_server import AMTControlServer
 from .server import AMTServer
 from .const import (
@@ -37,25 +38,37 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Intelbras AMT from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    # Create server (listens for panel connections)
-    server = AMTServer(
-        port=entry.data[CONF_PORT],
-        password=entry.data[CONF_PASSWORD],
-    )
+    host = (entry.data.get(CONF_HOST) or "").strip()
+    port = entry.data[CONF_PORT]
+    password = entry.data[CONF_PASSWORD]
+
+    # Client mode: HA connects to panel host:port
+    # Server mode: panel connects to HA on port
+    if host:
+        backend = AMTClient(
+            host=host,
+            port=port,
+            password=password,
+        )
+        mode = "client"
+    else:
+        backend = AMTServer(
+            port=port,
+            password=password,
+        )
+        await backend.start()
+        mode = "server"
 
     # Set partition passwords if configured
-    server.set_partition_passwords(
+    backend.set_partition_passwords(
         password_a=entry.data.get(CONF_PASSWORD_A),
         password_b=entry.data.get(CONF_PASSWORD_B),
         password_c=entry.data.get(CONF_PASSWORD_C),
         password_d=entry.data.get(CONF_PASSWORD_D),
     )
 
-    # Start the server
-    await server.start()
-
     # Start control server for CLI access
-    control_server = AMTControlServer(server, DEFAULT_CONTROL_PORT)
+    control_server = AMTControlServer(backend, DEFAULT_CONTROL_PORT)
     await control_server.start()
 
     # Get scan interval from options or data
@@ -65,13 +78,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     # Create coordinator
-    coordinator = AMTCoordinator(hass, server, scan_interval)
+    coordinator = AMTCoordinator(hass, backend, scan_interval)
 
     # Don't wait for first refresh - panel may not be connected yet
     # The coordinator will return disconnected status until panel connects
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
         "control_server": control_server,
+        "backend": backend,
     }
 
     # Forward entry setup to platforms
@@ -81,8 +95,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
     _LOGGER.info(
-        "Intelbras AMT integration started, panel port=%s, control port=%s",
-        entry.data[CONF_PORT],
+        "Intelbras AMT integration started in %s mode (%s), control port=%s",
+        mode,
+        f"{host}:{port}" if host else f"porta {port}",
         DEFAULT_CONTROL_PORT,
     )
 
