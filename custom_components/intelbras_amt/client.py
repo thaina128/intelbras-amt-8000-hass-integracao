@@ -618,8 +618,28 @@ class AMTClient:
         await self._send_command(CMD_PANIC, bytes([0x01]))
 
     async def siren_off(self) -> None:
-        """Turn siren off."""
-        await self._send_command(CMD_SIREN_OFF, bytes([0xFF]))
+        """Turn siren off.
+
+        Some AMT-8000 firmwares keep the audible siren active due to panic mode.
+        To be robust, we attempt both the dedicated siren-off command and a
+        panic cancel.
+        """
+        errors: list[Exception] = []
+        succeeded = False
+
+        for cmd, payload in (
+            (CMD_SIREN_OFF, bytes([0xFF])),
+            (CMD_PANIC, bytes([0x00])),
+        ):
+            try:
+                await self._send_command(cmd, payload)
+                succeeded = True
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Siren off step failed cmd=0x%04X: %s", cmd, err)
+                errors.append(err)
+
+        if not succeeded and errors:
+            raise errors[0]
 
     async def bypass_zones(self, zone_mask: list[bool]) -> None:
         """Bypass zones according to mask."""
