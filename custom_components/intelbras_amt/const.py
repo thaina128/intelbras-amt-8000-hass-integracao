@@ -66,6 +66,9 @@ NACK_NO_BYPASS_PERMISSION: Final = 0xE6
 NACK_NO_DEACTIVATE_PERMISSION: Final = 0xE7
 NACK_BYPASS_NOT_ALLOWED: Final = 0xE8
 NACK_NO_ZONES_IN_PARTITION: Final = 0xEA
+# Observed in ISECNet2 (client mode) when trying to arm with open zones.
+# Intelbras uses different NACK codes depending on protocol/firmware.
+NACK_ZONES_OPEN_ISECNET2: Final = 0x27
 
 NACK_MESSAGES: Final = {
     NACK_INVALID_PACKET: "Pacote inválido",
@@ -73,6 +76,7 @@ NACK_MESSAGES: Final = {
     NACK_INVALID_COMMAND: "Comando inválido",
     NACK_NOT_PARTITIONED: "Central não particionada",
     NACK_ZONES_OPEN: "Zonas abertas",
+    NACK_ZONES_OPEN_ISECNET2: "Zonas abertas",
     NACK_DISCONTINUED: "Função descontinuada",
     NACK_NO_BYPASS_PERMISSION: "Sem permissão para anular",
     NACK_NO_DEACTIVATE_PERMISSION: "Sem permissão para desativar",

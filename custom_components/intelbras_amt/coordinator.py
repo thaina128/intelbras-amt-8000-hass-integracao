@@ -7,12 +7,14 @@ import logging
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .client import AMTClientError
+from .client import AMTClientError, AMTNackError
 from .server import AMTServerError
 from .const import (
     DATA_CONNECTED,
+    DATA_ZONES_OPEN,
     DATA_ZONES_OPEN,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -23,6 +25,26 @@ _LOGGER = logging.getLogger(__name__)
 
 class AMTCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator for AMT alarm panel data."""
+
+    def _open_zones_str(self) -> str:
+        """Human-friendly open zones list based on last data."""
+        data = self.data or {}
+        bits = data.get(DATA_ZONES_OPEN) or []
+        idxs = [str(i + 1) for i, b in enumerate(bits) if b]
+        return ", ".join(idxs)
+
+    def _raise_control_error(self, err: Exception) -> None:
+        """Convert low-level errors into a nice HA-visible message."""
+        if isinstance(err, AMTNackError):
+            # Best-effort: add open zones hint if we have it.
+            open_z = self._open_zones_str()
+            if open_z:
+                raise HomeAssistantError(
+                    f"{err}. Zonas abertas: {open_z}. Feche-as ou use 'Anular Zonas Abertas'."
+                ) from err
+            raise HomeAssistantError(str(err)) from err
+
+        raise HomeAssistantError(str(err)) from err
 
     def __init__(
         self,
@@ -71,36 +93,54 @@ class AMTCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_arm(self, code: str | None = None) -> None:
         """Arm the alarm panel."""
-        await self.backend.arm(code)
-        await self.async_request_refresh()
+        try:
+            await self.backend.arm(code)
+            await self.async_request_refresh()
+        except Exception as err:  # noqa: BLE001
+            self._raise_control_error(err)
 
     async def async_disarm(self, code: str | None = None) -> None:
         """Disarm the alarm panel."""
-        await self.backend.disarm(code)
-        await self.async_request_refresh()
+        try:
+            await self.backend.disarm(code)
+            await self.async_request_refresh()
+        except Exception as err:  # noqa: BLE001
+            self._raise_control_error(err)
 
     async def async_arm_stay(self, code: str | None = None) -> None:
         """Arm in stay mode."""
-        await self.backend.arm_stay(code)
-        await self.async_request_refresh()
+        try:
+            await self.backend.arm_stay(code)
+            await self.async_request_refresh()
+        except Exception as err:  # noqa: BLE001
+            self._raise_control_error(err)
 
     async def async_arm_partition(self, partition: str, code: str | None = None) -> None:
         """Arm a specific partition."""
-        await self.backend.arm_partition(partition, code)
-        await self.async_request_refresh()
+        try:
+            await self.backend.arm_partition(partition, code)
+            await self.async_request_refresh()
+        except Exception as err:  # noqa: BLE001
+            self._raise_control_error(err)
 
     async def async_arm_stay_partition(self, partition: str, code: str | None = None) -> None:
         """Arm a specific partition in stay mode."""
-        if hasattr(self.backend, "arm_stay_partition"):
-            await self.backend.arm_stay_partition(partition, code)
-        else:
-            await self.backend.arm_partition(partition, code)
-        await self.async_request_refresh()
+        try:
+            if hasattr(self.backend, "arm_stay_partition"):
+                await self.backend.arm_stay_partition(partition, code)
+            else:
+                await self.backend.arm_partition(partition, code)
+            await self.async_request_refresh()
+        except Exception as err:  # noqa: BLE001
+            self._raise_control_error(err)
 
     async def async_disarm_partition(self, partition: str, code: str | None = None) -> None:
         """Disarm a specific partition."""
-        await self.backend.disarm_partition(partition, code)
-        await self.async_request_refresh()
+        try:
+            await self.backend.disarm_partition(partition, code)
+            await self.async_request_refresh()
+        except Exception as err:  # noqa: BLE001
+            self._raise_control_error(err)
 
     async def async_activate_pgm(self, pgm_number: int) -> None:
         """Activate a PGM output."""
