@@ -5,11 +5,50 @@
 
 Integração custom para Home Assistant focada na central de alarme **Intelbras AMT-8000**.
 
-- Protocolo: **ISECNet2**
+- Protocolo (AMT-8000): **ISECNet2**
 - Transporte: **TCP**
 - Porta padrão: **9009**
 
 > Este repositório é um fork e foi ajustado para AMT-8000. Se você usa outros modelos AMT, este fork pode não ser a melhor opção.
+
+## Funcionalidades (Atuais)
+
+### Alarm Control Panel
+
+- `alarm_control_panel` da **Central** (armar/desarmar, `armed_away` e `armed_home`/stay)
+- `alarm_control_panel` das **Partições A/B/C/D** (armar/desarmar, `armed_away` e `armed_home`/stay)
+- `code_arm_required: true` (o HA exige código para armar/desarmar via UI)
+
+### Zonas
+
+- Entidades para **64 zonas** (Zona 1..Zona 64) com status:
+  - **Aberta**
+  - **Violada**
+  - **Anulada/Bypass**
+- Contadores (sensores):
+  - Zonas abertas
+  - Zonas violadas
+  - Zonas anuladas
+
+### Sensores
+
+- Sensor de **nível de bateria (%)**
+- Sensores de **modelo** e **firmware**
+
+### Sirene e PGMs
+
+- `switch` para **sirene** (on/off)
+- `switch` para **PGM 1..19** (on/off)
+
+### Botões (Ações rápidas)
+
+- Botão: **Armar Stay**
+- Botão: **Anular Zonas Abertas**
+
+### Debug / CLI (Desenvolvedor)
+
+- Servidor HTTP de controle em `0.0.0.0:9019` (para debug local)
+- CLI em `tools/amt_cli.py` para consultar status e enviar comandos
 
 ## Como Funciona
 
@@ -27,7 +66,33 @@ No fluxo de configuração, preencha o campo `Host` (IP da central). Se `Host` e
 
 Se você deixar `Host` vazio, a integração entra em **modo servidor** (o HA escuta na porta e a central conecta no HA).
 
-Esse modo existe por compatibilidade com código legado e **não é o foco deste fork**.
+Esse modo existe por compatibilidade com código legado e usa um conjunto de comandos ASCII (ver tabela abaixo).
+
+## Comandos (Modo Servidor / ASCII)
+
+Tabela de comandos (hex) que a integração usa no modo servidor:
+
+| Comando | Código | Descrição |
+|---|---:|---|
+| Status | `0x5B` | Solicita status completo (54 bytes de payload na resposta) |
+| Armar | `0x41` | Armar alarme |
+| Desarmar | `0x44` | Desarmar alarme |
+| Stay | `0x41 0x50` | Armar em modo stay |
+| Sirene On | `0x43` | Ligar sirene |
+| Sirene Off | `0x63` | Desligar sirene |
+
+### Teste Rápido (CLI)
+
+Quando a integração estiver rodando no HA e o painel estiver conectado, você pode testar via CLI:
+
+```bash
+python3 tools/amt_cli.py status
+python3 tools/amt_cli.py raw "5B"
+python3 tools/amt_cli.py arm
+python3 tools/amt_cli.py disarm
+python3 tools/amt_cli.py siren on
+python3 tools/amt_cli.py siren off
+```
 
 ## Instalação
 
@@ -53,25 +118,6 @@ Campos:
 - `Port`: `9009`
 - `Password`: **senha de acesso remoto** (normalmente 4 ou 6 dígitos)
 
-## Entidades
-
-Principais entidades criadas:
-
-- `alarm_control_panel.*`: Central e Partições (A/B/C/D)
-- `binary_sensor.*`: Zonas (aberta/violada/anulada) e diagnósticos (energia/bateria/sirene/problemas)
-- `sensor.*`: nível de bateria, contadores de zonas
-- `switch.*`: sirene, PGM 1..19
-- `button.*`: armar stay, anular zonas abertas
-
-## Limitações Conhecidas (AMT-8000)
-
-Algumas informações expostas no Home Assistant ainda podem estar **incompletas** no modo AMT-8000 (WIP), por exemplo:
-
-- Estado detalhado de energia AC e PGMs
-- Tamper/curto/bateria fraca por zona (sensores por zona)
-
-Se você quiser contribuir com dumps/offsets para melhorar o parsing, abra uma issue.
-
 ## Teste de Conectividade
 
 Verifique se a porta da central está acessível a partir do host do Home Assistant:
@@ -95,6 +141,11 @@ logger:
 
 - Não exponha a porta `9009` da central na internet.
 - Este repositório inclui um **servidor HTTP de controle** para debug em `0.0.0.0:9019` (sem autenticação). Use apenas em rede confiável e não faça port-forward dessa porta.
+
+## Limitações Conhecidas
+
+- No modo AMT-8000 (ISECNet2), alguns campos de diagnóstico ainda podem estar incompletos (WIP), dependendo do firmware e do parsing disponível.
+- O estado de PGMs pode não refletir corretamente no HA dependendo do protocolo/firmware (comandos estão implementados, mas o feedback pode variar).
 
 ## Créditos
 
