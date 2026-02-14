@@ -65,8 +65,11 @@ class AMTAlarmControlPanel(CoordinatorEntity[AMTCoordinator], AlarmControlPanelE
         AlarmControlPanelEntityFeature.ARM_HOME
         | AlarmControlPanelEntityFeature.ARM_AWAY
     )
-    _attr_code_arm_required = True
-    _attr_code_format = CodeFormat.NUMBER
+    # The integration already authenticates to the panel using the configured
+    # password (ISEC). Requiring a UI code is confusing and unnecessary for
+    # most setups/automations.
+    _attr_code_arm_required = False
+    _attr_code_format = None
 
     def __init__(
         self,
@@ -136,15 +139,16 @@ class AMTAlarmControlPanel(CoordinatorEntity[AMTCoordinator], AlarmControlPanelE
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
         """Disarm the alarm."""
-        await self.coordinator.async_disarm(code)
+        # Ignore UI code; use integration configured password.
+        await self.coordinator.async_disarm(None)
 
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         """Arm in stay mode."""
-        await self.coordinator.async_arm_stay(code)
+        await self.coordinator.async_arm_stay(None)
 
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         """Arm the alarm."""
-        await self.coordinator.async_arm(code)
+        await self.coordinator.async_arm(None)
 
     async def async_alarm_trigger(self, code: str | None = None) -> None:
         """Trigger the alarm (not supported)."""
@@ -159,8 +163,8 @@ class AMTPartitionAlarmPanel(CoordinatorEntity[AMTCoordinator], AlarmControlPane
         AlarmControlPanelEntityFeature.ARM_HOME
         | AlarmControlPanelEntityFeature.ARM_AWAY
     )
-    _attr_code_arm_required = True
-    _attr_code_format = CodeFormat.NUMBER
+    _attr_code_arm_required = False
+    _attr_code_format = None
 
     def __init__(
         self,
@@ -225,12 +229,12 @@ class AMTPartitionAlarmPanel(CoordinatorEntity[AMTCoordinator], AlarmControlPane
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
         """Disarm the partition."""
-        await self.coordinator.async_disarm_partition(self._partition_name, code)
+        await self.coordinator.async_disarm_partition(self._partition_name, None)
 
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         """Arm the partition in stay mode."""
-        await self.coordinator.async_arm_stay_partition(self._partition_name, code)
+        await self.coordinator.async_arm_stay_partition(self._partition_name, None)
 
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         """Arm the partition."""
-        await self.coordinator.async_arm_partition(self._partition_name, code)
+        await self.coordinator.async_arm_partition(self._partition_name, None)
