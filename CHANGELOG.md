@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-02-14
+
+### Changed
+- AMT-8000: implement ISECNet2 client mode (HA -> central on TCP 9009)
+- Status parsing updated for AMT-8000 (zones, partitions, siren, battery)
+
+### Notes
+- Some diagnostic fields are still WIP for AMT-8000 (AC power/PGMs, per-zone tamper/short/low-battery)
+
 ## [1.4.3] - 2025-01-20
 
 ### Fixed

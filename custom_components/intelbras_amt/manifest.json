@@ -4,9 +4,9 @@
   "codeowners": [],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/robsonfelix/intelbras-amt-hass-integration",
+  "documentation": "https://github.com/thaina128/intelbras-amt-8000-hass-integracao",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/robsonfelix/intelbras-amt-hass-integration/issues",
+  "issue_tracker": "https://github.com/thaina128/intelbras-amt-8000-hass-integracao/issues",
   "requirements": [],
-  "version": "1.4.3"
+  "version": "1.5.0"
 }
