@@ -70,6 +70,23 @@ Validacoes realizadas em 2026-07-10:
 - O container `homeassistant-uswo0ko0w8c0gkc0kcso004c` voltou `healthy` apos restart.
 - O teste manual de `script.avisar_casa` pela UI foi aceito sem erros recentes de `alexa_devices`, `notify.send_message` ou `script.avisar_casa` nos logs.
 
+### Temperatura do Aquecedor via Alexa
+
+- Criado `input_number.aquecedor_temperatura_alexa` para contornar limite de temperatura da skill Tuya/Smart Life pela Alexa.
+- Nome exposto para Alexa: `Temperatura Aquecedor`.
+- Faixa configurada: `35` a `65 °C`.
+- Passo configurado: `1 °C`.
+- Criada automacao `Aquecedor - Sincronizar temperatura para Alexa` para manter o `input_number` alinhado com `climate.aquecedor`.
+- Criada automacao `Alexa - Aplicar temperatura do aquecedor` para aplicar no `climate.aquecedor` o valor definido no `input_number`.
+- Validado em 2026-07-10: ajustar `input_number.aquecedor_temperatura_alexa` para `42` atualizou `climate.aquecedor` para `temperature: 42`.
+
+Backups criados:
+
+- `/data/coolify/services/uswo0ko0w8c0gkc0kcso004c/configuration.yaml.bak-aquecedor-input-number-20260710T220249Z`
+- `/config/automations.yaml.bak-aquecedor-input-number-20260710T220306Z`
+
+Depois de qualquer alteracao no filtro `alexa.smart_home`, pedir para a Alexa descobrir dispositivos novamente.
+
 ### AMT-8000 e Porta RX500
 
 - Configurada automacao para a porta RX500 acompanhar o estado real do alarme.
@@ -187,6 +204,8 @@ alexa:
         - alarm_control_panel.amt_porta_9009_central
         - automation.alexa_ligar_alarme_comando
         - automation.alexa_forcar_ligar_alarme_comando
+        - cover.cortina
+        - input_number.aquecedor_temperatura_alexa
     entity_config:
       alarm_control_panel.amt_porta_9009_central:
         name: "Alarme Casa"
@@ -197,6 +216,12 @@ alexa:
       automation.alexa_forcar_ligar_alarme_comando:
         name: "Forcar Ligar Alarme Casa"
         description: "Comando para armar o alarme da casa ignorando zonas abertas"
+      cover.cortina:
+        name: "Cortina"
+        description: "Cortina RF controlada pelo Smart Life"
+      input_number.aquecedor_temperatura_alexa:
+        name: "Temperatura Aquecedor"
+        description: "Controle numerico da temperatura do aquecedor"
 ```
 
 Na Alexa, depois de descobrir dispositivos, devem aparecer:
@@ -204,6 +229,8 @@ Na Alexa, depois de descobrir dispositivos, devem aparecer:
 - `Alarme Casa`
 - `Ligar Alarme Casa`
 - `Forcar Ligar Alarme Casa`
+- `Cortina`
+- `Temperatura Aquecedor`
 
 ## Comandos de Voz Recomendados
 
@@ -268,6 +295,28 @@ As automacoes abaixo observam quando a Alexa liga as automacoes de comando e exe
   - Anuncia sucesso/falha via `script.avisar_casa`, que fala no Google Nest e na Alexa
 
 O `mode: restart` e importante: se uma mudanca nova chegar enquanto a sequencia anterior ainda esta rodando, a sequencia anterior e cancelada.
+
+### Controle Numerico do Aquecedor
+
+O comando de voz direto da skill Tuya/Smart Life pode limitar a temperatura maxima aceita pela Alexa, mesmo que o aquecedor aceite valores maiores no Home Assistant. Para contornar isso, o Home Assistant expoe um controle numerico proprio.
+
+- `input_number.aquecedor_temperatura_alexa`
+  - Nome Alexa: `Temperatura Aquecedor`
+  - Minimo: `35`
+  - Maximo: `65`
+  - Passo: `1`
+- `automation.aquecedor_temperatura_alexa_sincronizar`
+  - Sincroniza o controle numerico com a temperatura alvo real de `climate.aquecedor`.
+- `automation.alexa_aquecedor_temperatura_aplicar`
+  - Quando o controle numerico muda, chama `climate.set_temperature` em `climate.aquecedor`.
+
+Frases para testar depois da descoberta da Alexa:
+
+- `Alexa, descobrir dispositivos`
+- `Alexa, definir Temperatura Aquecedor para 42`
+- `Alexa, ajustar Temperatura Aquecedor para 42`
+
+Se a frase com `graus` falhar, testar sem `graus`, porque a entidade exposta e um controle numerico `RangeController`, nao um termostato Tuya.
 
 ### Script Central de Avisos
 
@@ -625,6 +674,23 @@ Usar rotinas com frases completas:
 Para desligar, preferir:
 
 - `desarmar Alarme Casa`
+
+### Aquecedor Nao Aceita 42 Graus por Voz
+
+Se `Alexa, definir o aquecedor para 38 graus` funciona, mas `42 graus` falha, provavelmente a Alexa esta usando a skill Tuya/Smart Life e tratando o dispositivo como termostato ambiente, com limite menor que o aquecedor real.
+
+Usar o controle exposto pelo Home Assistant:
+
+1. Pedir `Alexa, descobrir dispositivos`.
+2. Confirmar se aparece `Temperatura Aquecedor`.
+3. Testar:
+   - `Alexa, definir Temperatura Aquecedor para 42`
+   - `Alexa, ajustar Temperatura Aquecedor para 42`
+4. Conferir no Home Assistant:
+   - `input_number.aquecedor_temperatura_alexa` deve ficar em `42`.
+   - `climate.aquecedor` deve ficar com atributo `temperature: 42`.
+
+Se a Alexa continuar usando o dispositivo Tuya antigo chamado `Aquecedor`, renomear ou desativar esse dispositivo no app Alexa para evitar conflito de nomes.
 
 ### Alexa Devices Pede Reautenticacao ou Para de Falar
 

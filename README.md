@@ -150,6 +150,7 @@ A documentacao operacional esta em
 - manutencao do `configuration.yaml` no Coolify/Home Assistant Container;
 - como adicionar novas entidades ou comandos para Alexa;
 - como enviar avisos falados para o Echo Dot via Alexa Devices;
+- como contornar limites da Alexa/Tuya usando um controle numerico do aquecedor no Home Assistant;
 - plano para comandos de voz que analisam cameras/Frigate com IA e respondem pela Alexa;
 - troubleshooting de descoberta, account linking e rotinas de voz.
 
