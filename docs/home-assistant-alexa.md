@@ -33,6 +33,43 @@ homeassistant:
   - `forcar ligar alarme casa`
   - `desarmar Alarme Casa` com PIN no app Alexa
 
+### Avisos Falados na Alexa
+
+- Configurada a integracao nativa `Alexa Devices` do Home Assistant para a conta Amazon da casa.
+- O login foi concluido por OAuth/codigo de autorizacao; nenhum token, senha ou codigo OTP deve ser registrado neste repositorio.
+- Entidades criadas para o Echo Dot:
+  - `notify.echo_dot_de_thaina_announce`
+  - `notify.echo_dot_de_thaina_speak`
+  - `binary_sensor.echo_dot_de_thaina_connectivity`
+  - `binary_sensor.echo_dot_de_thaina_motion`
+  - `sensor.echo_dot_de_thaina_temperature`
+  - `sensor.echo_dot_de_thaina_illuminance`
+  - `switch.echo_dot_de_thaina_do_not_disturb`
+- Atualizado o script central `script.avisar_casa` para falar no Google Nest e tambem na Alexa via `notify.send_message`.
+- Atualizadas as automacoes executoras da Alexa para usar `script.avisar_casa` nos retornos de sucesso/falha, incluindo o caso de porta/janela aberta.
+- A automacao de chuva/janelas ja chamava `script.avisar_casa`; portanto, os avisos de chuva passaram a sair tambem no Echo Dot.
+
+Backups criados no Home Assistant:
+
+- `/config/.storage/core.config_entries.bak-alexa-devices-20260710T211149Z`
+- `/config/scripts.yaml.bak-alexa-devices-20260710T211554Z`
+- `/config/automations.yaml.bak-alexa-devices-announce-20260710T212101Z`
+
+Hotfix aplicado no container:
+
+- Arquivo: `/usr/local/lib/python3.13/site-packages/aioamazondevices/api.py`
+- Backup: `/tmp/aioamazondevices_api.py.before_alexa_error_none_patch`
+- Motivo: a validacao da biblioteca falhava quando a Amazon retornava `error: null` em um recurso do Echo.
+- Ajuste: tratar `feature_property.get("error")` como `{}` quando vier `None`.
+
+Esse hotfix fica dentro da imagem/container em execucao. Se o container for recriado ou a imagem do Home Assistant for atualizada, ele pode ser perdido. Se a integracao `Alexa Devices` voltar a falhar com erro `NoneType` em `.get`, conferir primeiro se a versao nova da biblioteca ja corrigiu o problema; se nao corrigiu, reaplicar o patch no container.
+
+Validacoes realizadas em 2026-07-10:
+
+- `python3 -m homeassistant --script check_config --config /config` passou sem erros.
+- O container `homeassistant-uswo0ko0w8c0gkc0kcso004c` voltou `healthy` apos restart.
+- O teste manual de `script.avisar_casa` pela UI foi aceito sem erros recentes de `alexa_devices`, `notify.send_message` ou `script.avisar_casa` nos logs.
+
 ### AMT-8000 e Porta RX500
 
 - Configurada automacao para a porta RX500 acompanhar o estado real do alarme.
@@ -122,6 +159,21 @@ Decisoes de seguranca:
   - Authentication Scheme: `Credentials in request body`
   - Scope: `smart_home`
 
+### Alexa Devices / Echo Dot
+
+- Integracao HA: `Alexa Devices`
+- Conta: conta Amazon da casa
+- Site final usado pela integracao: `https://www.amazon.com.br`
+- Entidade de anuncio principal:
+  `notify.echo_dot_de_thaina_announce`
+- Entidade de fala simples:
+  `notify.echo_dot_de_thaina_speak`
+
+A integracao `Alexa Devices` e usada para o caminho inverso da skill Smart Home:
+
+- Skill Smart Home: Alexa envia comandos para o Home Assistant.
+- Alexa Devices: Home Assistant envia falas/avisos para o Echo Dot.
+
 ## Entidades Expostas para Alexa
 
 O bloco `alexa.smart_home` do Home Assistant esta configurado com filtro explicito. Isso evita expor a casa inteira por engano.
@@ -207,15 +259,46 @@ As automacoes abaixo observam quando a Alexa liga as automacoes de comando e exe
   - Valida se o alarme ja esta armado
   - Valida aberturas antes de armar
   - Se nao houver abertura, chama `alarm_control_panel.alarm_arm_away`
-  - Anuncia sucesso/falha via TTS
+  - Anuncia sucesso/falha via `script.avisar_casa`, que fala no Google Nest e na Alexa
 - `automation.alexa_executar_forcar_ligar_alarme`
   - Alias: `Alexa - Executar forcar ligar alarme`
   - Modo: `restart`
   - Se houver zonas abertas, pressiona `button.amt_porta_9009_anular_zonas_abertas`
   - Tenta armar o alarme
-  - Anuncia sucesso/falha via TTS
+  - Anuncia sucesso/falha via `script.avisar_casa`, que fala no Google Nest e na Alexa
 
 O `mode: restart` e importante: se uma mudanca nova chegar enquanto a sequencia anterior ainda esta rodando, a sequencia anterior e cancelada.
+
+### Script Central de Avisos
+
+`script.avisar_casa` fica em `/config/scripts.yaml` e deve ser o padrao para avisos falados da casa.
+
+Comportamento atual:
+
+- `google: true` por padrao: fala em `media_player.som_escritorio` via Google Translate TTS.
+- `alexa: true` por padrao: anuncia em `notify.echo_dot_de_thaina_announce` via Alexa Devices.
+- `title` e opcional.
+- `message` e obrigatorio.
+
+Exemplo para usar em automacoes:
+
+```yaml
+- action: script.avisar_casa
+  data:
+    title: Chuva prevista
+    message: "Chuva prevista, fechar as: {{ open_names | join(', ') }}."
+```
+
+Exemplo somente Alexa, sem Google Nest:
+
+```yaml
+- action: script.avisar_casa
+  data:
+    google: false
+    alexa: true
+    title: Teste Alexa
+    message: Teste do Home Assistant na Alexa.
+```
 
 ## Porta RX500 / RF433
 
@@ -348,6 +431,30 @@ Exemplo:
 
 Nao usar rotina para desarmar alarme sem PIN.
 
+### Adicionar Novo Aviso Falado
+
+Para qualquer aviso novo, preferir chamar `script.avisar_casa` em vez de chamar `tts.speak` ou `notify.send_message` diretamente. Isso mantem Google Nest e Alexa sincronizados.
+
+Modelo:
+
+```yaml
+- action: script.avisar_casa
+  data:
+    title: Nome curto do aviso
+    message: Texto que deve ser falado.
+```
+
+Para um aviso que deve sair apenas na Alexa:
+
+```yaml
+- action: script.avisar_casa
+  data:
+    google: false
+    alexa: true
+    title: Nome curto do aviso
+    message: Texto que deve ser falado.
+```
+
 ## Manutencao
 
 ### Validar Home Assistant Publico
@@ -393,6 +500,47 @@ ssh -i ~/.ssh/chave_servidor_casa thaina128@192.168.15.16 \
 ```bash
 ssh -i ~/.ssh/chave_servidor_casa thaina128@192.168.15.16 \
   'sudo sed -n "14,45p" /data/coolify/services/uswo0ko0w8c0gkc0kcso004c/configuration.yaml'
+```
+
+### Testar Aviso Falado na Alexa
+
+Pela UI do Home Assistant:
+
+1. Abrir Ferramentas de desenvolvedor -> Acoes.
+2. Usar modo YAML.
+3. Executar:
+
+```yaml
+action: script.avisar_casa
+data:
+  google: false
+  alexa: true
+  title: Teste Alexa
+  message: Teste do Home Assistant na Alexa.
+```
+
+Validacao esperada:
+
+- O Echo Dot anuncia a mensagem.
+- O log recente do Home Assistant nao mostra erro de `alexa_devices`, `notify.send_message` ou `script.avisar_casa`.
+
+### Conferir Entidades Alexa Devices
+
+```bash
+ssh -i ~/.ssh/chave_servidor_casa thaina128@192.168.15.16 \
+  "docker exec homeassistant-uswo0ko0w8c0gkc0kcso004c sh -lc 'grep -o \"notify.echo_dot_de_thaina_[a-z_]*\" /config/.storage/core.entity_registry | sort -u'"
+```
+
+Esperado:
+
+- `notify.echo_dot_de_thaina_announce`
+- `notify.echo_dot_de_thaina_speak`
+
+### Conferir Logs da Alexa Devices
+
+```bash
+ssh -i ~/.ssh/chave_servidor_casa thaina128@192.168.15.16 \
+  'docker logs --since 5m homeassistant-uswo0ko0w8c0gkc0kcso004c 2>&1 | grep -Ei "alexa_devices|notify.echo_dot|notify.send_message|avisar_casa|error|exception|traceback|amazon"'
 ```
 
 ### Validar Lambda
@@ -477,6 +625,15 @@ Usar rotinas com frases completas:
 Para desligar, preferir:
 
 - `desarmar Alarme Casa`
+
+### Alexa Devices Pede Reautenticacao ou Para de Falar
+
+1. Em Home Assistant, abrir Configuracoes -> Dispositivos e servicos -> `Alexa Devices`.
+2. Se aparecer reautenticacao, refazer login na conta Amazon da casa.
+3. Se o fluxo travar em captcha/verificacao de celular, concluir no navegador real e usar o codigo/URL de autorizacao somente na sessao corrente; nao salvar em arquivo de documentacao.
+4. Conferir se `notify.echo_dot_de_thaina_announce` ainda existe.
+5. Conferir logs de `alexa_devices`.
+6. Se o erro for `AttributeError: 'NoneType' object has no attribute 'get'` dentro de `aioamazondevices/api.py`, verificar se o hotfix do container foi perdido em recriacao/upgrade.
 
 ### Porta RX500 Nao Abre/Fecha Sempre
 

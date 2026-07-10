@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Operational documentation for the Home Assistant Alexa Smart Home setup, including AWS Lambda, Amazon Developer Skill, exposed HA entities, RX500 RF door automation, maintenance commands, and instructions for adding new Alexa devices/commands.
+- Documentation for Alexa Devices announcements from Home Assistant, including `script.avisar_casa`, Echo Dot `notify` entities, validation steps, and the temporary `aioamazondevices` container hotfix.
 
 ## [1.5.0] - 2026-02-14
 

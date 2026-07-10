@@ -149,6 +149,7 @@ A documentacao operacional esta em
 - inventario da Lambda, skill, dominio e entidades expostas;
 - manutencao do `configuration.yaml` no Coolify/Home Assistant Container;
 - como adicionar novas entidades ou comandos para Alexa;
+- como enviar avisos falados para o Echo Dot via Alexa Devices;
 - troubleshooting de descoberta, account linking e rotinas de voz.
 
 ## Segurança
