@@ -151,6 +151,7 @@ A documentacao operacional esta em
 - como adicionar novas entidades ou comandos para Alexa;
 - como enviar avisos falados para o Echo Dot via Alexa Devices;
 - como contornar limites da Alexa/Tuya usando um controle numerico do aquecedor no Home Assistant;
+- como acionar e manter a rotina modular de emergencia silenciosa `Cancelar Seguranca`;
 - plano para comandos de voz que analisam cameras/Frigate com IA e respondem pela Alexa;
 - troubleshooting de descoberta, account linking e rotinas de voz.
 

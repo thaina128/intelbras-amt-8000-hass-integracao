@@ -31,6 +31,7 @@ homeassistant:
 - Criadas orientacoes para rotinas de voz:
   - `ativar seguranca da casa`
   - `ativar seguranca forcada`
+  - `cancelar seguranca`
   - `desarmar Central Seguranca Casa` com PIN no app Alexa
 
 ### Avisos Falados na Alexa
@@ -93,6 +94,37 @@ Depois de qualquer alteracao no filtro `alexa.smart_home`, pedir para a Alexa de
 - Ao armar, a automacao envia `Fechar Porta` 3 vezes.
 - Ao desarmar, a automacao envia `Abrir Porta` com pulso de preparacao e mais 3 pulsos fortes.
 - A automacao usa `mode: restart` para cancelar tentativas pendentes quando o estado do alarme muda novamente.
+
+### Emergencia Casa via Alexa
+
+- Criada rotina modular `script.emergencia_casa`.
+- Criada entidade de comando para Alexa:
+  `automation.alexa_cancelar_seguranca_comando`.
+- Nome exposto para Alexa: `Cancelar Seguranca`.
+- Criada automacao executora:
+  `automation.alexa_executar_cancelar_seguranca`.
+- A automacao de comando tem `initial_state: false` para iniciar desligada e ficar pronta para ser ligada pela Alexa.
+- Comportamento da rotina:
+  - captura prints das cameras principais;
+  - envia notificacoes criticas para o celular `notify.mobile_app_iphonethaina`;
+  - cria uma notificacao persistente no HA;
+  - nao fala nada em Alexa/Google Nest dentro da casa;
+  - pisca a luz configurada como lustre 3 vezes;
+  - abre acessos configurados;
+  - abre a cortina;
+  - aciona panico/sirene da central AMT.
+- A luz do lustre ficou configurada provisoriamente como `switch.sala_socket_1`, porque nao foi encontrada entidade com nome `lustre`. Se esse nao for o canal correto, trocar somente a variavel `luz_lustre` em `script.emergencia_casa_confirmacao_visual`.
+- Teste seguro realizado em 2026-07-10: `script.emergencia_casa_capturar_cameras` gerou os arquivos:
+  - `/config/www/emergencia_casa/intelbras1_profile000.jpg`
+  - `/config/www/emergencia_casa/intelbras1_profile100.jpg`
+- A rotina completa nao foi testada de ponta a ponta por seguranca, porque abre acessos fisicos e aciona panico/sirene.
+
+Backups criados:
+
+- `/config/scripts.yaml.bak-emergencia-casa-20260710T222009Z`
+- `/config/automations.yaml.bak-emergencia-casa-20260710T222030Z`
+- `/config/automations.yaml.bak-emergencia-casa-initial-state-20260710T222531Z`
+- `/data/coolify/services/uswo0ko0w8c0gkc0kcso004c/configuration.yaml.bak-emergencia-casa-20260710T222030Z`
 
 ## Resumo do Estado Atual
 
@@ -204,6 +236,7 @@ alexa:
         - alarm_control_panel.amt_porta_9009_central
         - automation.alexa_ligar_alarme_comando
         - automation.alexa_forcar_ligar_alarme_comando
+        - automation.alexa_cancelar_seguranca_comando
         - cover.cortina
         - input_number.aquecedor_temperatura_alexa
     entity_config:
@@ -216,6 +249,9 @@ alexa:
       automation.alexa_forcar_ligar_alarme_comando:
         name: "Modo Seguranca Forcado"
         description: "Comando para ativar a seguranca da casa ignorando zonas abertas"
+      automation.alexa_cancelar_seguranca_comando:
+        name: "Cancelar Seguranca"
+        description: "Comando discreto para acionar emergencia da casa"
       cover.cortina:
         name: "Cortina"
         description: "Cortina RF controlada pelo Smart Life"
@@ -229,6 +265,7 @@ Na Alexa, depois de descobrir dispositivos, devem aparecer:
 - `Central Seguranca Casa`
 - `Modo Seguranca Casa`
 - `Modo Seguranca Forcado`
+- `Cancelar Seguranca`
 - `Cortina`
 - `Temperatura Aquecedor`
 
@@ -262,6 +299,26 @@ Nao criar rotina de automacao para desarmar sem PIN. Para manter seguranca, usar
 
 Evitar frases como `ligar alarme casa` ou `desligar alarme casa`, porque a Alexa pode interpretar como alarme de relogio/timer antes de acionar a casa inteligente.
 
+### Cancelar Seguranca / Emergencia Silenciosa
+
+Use rotina no app Alexa:
+
+- Quando eu disser: `cancelar seguranca`
+- Acao: Casa inteligente -> `Cancelar Seguranca` -> ligar
+
+Essa frase deve ser tratada como comando de coacao/emergencia. Ela nao desarma o alarme de forma normal; ela chama `script.emergencia_casa`.
+
+Comportamento esperado:
+
+- a casa nao fala nada em Alexa/Google Nest;
+- a luz configurada como lustre pisca 3 vezes;
+- o celular recebe notificacoes criticas com prints de camera;
+- os acessos configurados sao abertos;
+- a cortina e aberta;
+- a sirene/panico AMT e acionada.
+
+Nao testar essa rotina completa sem estar fisicamente preparado, porque ela muda o estado real da casa.
+
 ## Automacoes Existentes no Home Assistant
 
 ### Comandos Expostos para Alexa
@@ -274,6 +331,10 @@ As automacoes abaixo existem apenas para a Alexa conseguir ligar algo como se fo
 - `automation.alexa_forcar_ligar_alarme_comando`
   - Alias: `Alexa - Forcar ligar alarme comando`
   - Exposta para Alexa como `Modo Seguranca Forcado`
+- `automation.alexa_cancelar_seguranca_comando`
+  - Alias: `Alexa - Cancelar seguranca comando`
+  - Exposta para Alexa como `Cancelar Seguranca`
+  - Deve ficar desligada quando ociosa
 
 ### Automacoes Executor
 
@@ -293,8 +354,47 @@ As automacoes abaixo observam quando a Alexa liga as automacoes de comando e exe
   - Se houver zonas abertas, pressiona `button.amt_porta_9009_anular_zonas_abertas`
   - Tenta armar o alarme
   - Anuncia sucesso/falha via `script.avisar_casa`, que fala no Google Nest e na Alexa
+- `automation.alexa_executar_cancelar_seguranca`
+  - Alias: `Alexa - Executar cancelar seguranca`
+  - Modo: `restart`
+  - Desliga a entidade de comando `automation.alexa_cancelar_seguranca_comando`
+  - Chama `script.emergencia_casa`
 
 O `mode: restart` e importante: se uma mudanca nova chegar enquanto a sequencia anterior ainda esta rodando, a sequencia anterior e cancelada.
+
+### Scripts do Modo Emergencia
+
+`script.emergencia_casa` e apenas o orquestrador. Para manutencao, evoluir cada modulo separadamente:
+
+- `script.emergencia_casa_capturar_cameras`
+  - Salva snapshots em `/config/www/emergencia_casa`.
+  - Cameras atuais:
+    - `camera.intelbras1_profile000`
+    - `camera.intelbras1_profile100`
+- `script.emergencia_casa_notificar`
+  - Envia notificacoes criticas para `notify.mobile_app_iphonethaina`.
+  - Usa imagens publicadas como `/local/emergencia_casa/*.jpg`.
+  - Nao usa `script.avisar_casa` para manter silencio dentro da casa.
+- `script.emergencia_casa_confirmacao_visual`
+  - Pisca 3 vezes a entidade configurada em `luz_lustre`.
+  - Entidade atual: `switch.sala_socket_1`.
+  - Se o lustre correto for outro, trocar apenas essa variavel.
+- `script.emergencia_casa_abrir_acessos`
+  - Chama `lock.unlock` em `lock.fechadura`.
+  - Envia 3 pulsos em `switch.porta_switch_1` para abrir a porta RX500/RF.
+  - Chama `cover.open_cover` em `cover.cortina`.
+  - Para adicionar novas portas/portoes/cortinas, acrescentar acoes neste script.
+- `script.emergencia_casa_panico_amt`
+  - Liga `switch.amt_porta_9009_sirene`.
+  - Este e o caminho atual de panico audivel/sirene da central AMT no Home Assistant.
+
+Para adicionar novos passos ao modo emergencia:
+
+1. Se for aviso/camera, alterar `script.emergencia_casa_notificar` ou `script.emergencia_casa_capturar_cameras`.
+2. Se for abertura fisica, alterar `script.emergencia_casa_abrir_acessos`.
+3. Se for resposta visual silenciosa, alterar `script.emergencia_casa_confirmacao_visual`.
+4. Se for central AMT/sirene/panico, alterar `script.emergencia_casa_panico_amt`.
+5. Evitar colocar toda a logica diretamente em `script.emergencia_casa`; ele deve continuar apenas chamando modulos.
 
 ### Controle Numerico do Aquecedor
 
@@ -431,6 +531,7 @@ Modelo:
 ```yaml
 - id: alexa_exemplo_comando
   alias: Alexa - Exemplo comando
+  initial_state: false
   triggers:
     - trigger: event
       event_type: alexa_exemplo_comando_nunca
@@ -572,6 +673,33 @@ Validacao esperada:
 
 - O Echo Dot anuncia a mensagem.
 - O log recente do Home Assistant nao mostra erro de `alexa_devices`, `notify.send_message` ou `script.avisar_casa`.
+
+### Testar Emergencia Casa com Seguranca
+
+Teste seguro de camera, sem abrir acessos e sem acionar panico:
+
+```yaml
+action: script.emergencia_casa_capturar_cameras
+```
+
+Arquivos esperados:
+
+- `/config/www/emergencia_casa/intelbras1_profile000.jpg`
+- `/config/www/emergencia_casa/intelbras1_profile100.jpg`
+
+Conferir via SSH:
+
+```bash
+ssh -i ~/.ssh/chave_servidor_casa thaina128@192.168.15.16 \
+  'docker exec homeassistant-uswo0ko0w8c0gkc0kcso004c ls -l /config/www/emergencia_casa'
+```
+
+Nao executar `script.emergencia_casa` por teste casual. Esse script abre acessos e aciona panico/sirene.
+
+Depois de adicionar `Cancelar Seguranca` no filtro da Alexa, pedir descoberta de dispositivos e criar a rotina no app Alexa:
+
+- Quando eu disser: `cancelar seguranca`
+- Acao: Casa inteligente -> `Cancelar Seguranca` -> ligar
 
 ### Conferir Entidades Alexa Devices
 
