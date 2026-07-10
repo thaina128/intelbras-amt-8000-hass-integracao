@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation for Alexa Devices announcements from Home Assistant, including `script.avisar_casa`, Echo Dot `notify` entities, validation steps, and the temporary `aioamazondevices` container hotfix.
 - Planning document for an Alexa-triggered camera AI analysis feature using Home Assistant, Frigate, LLM Vision, and Alexa Devices announcements.
 - Documentation for the Alexa-exposed aquecedor temperature `input_number` workaround and its Home Assistant synchronization automations.
+- Documentation for renaming Alexa security devices away from "alarme" wording to avoid conflicts with Alexa timers/clock alarms.
 
 ## [1.5.0] - 2026-02-14
 

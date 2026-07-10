@@ -29,9 +29,9 @@ homeassistant:
 - Configurado Account Linking da skill para OAuth do Home Assistant.
 - Expostas entidades selecionadas do HA para Alexa com nomes amigaveis.
 - Criadas orientacoes para rotinas de voz:
-  - `ligar alarme casa`
-  - `forcar ligar alarme casa`
-  - `desarmar Alarme Casa` com PIN no app Alexa
+  - `ativar seguranca da casa`
+  - `ativar seguranca forcada`
+  - `desarmar Central Seguranca Casa` com PIN no app Alexa
 
 ### Avisos Falados na Alexa
 
@@ -208,14 +208,14 @@ alexa:
         - input_number.aquecedor_temperatura_alexa
     entity_config:
       alarm_control_panel.amt_porta_9009_central:
-        name: "Alarme Casa"
-        description: "Central de alarme da casa"
+        name: "Central Seguranca Casa"
+        description: "Central de seguranca da casa"
       automation.alexa_ligar_alarme_comando:
-        name: "Ligar Alarme Casa"
-        description: "Comando para armar o alarme da casa"
+        name: "Modo Seguranca Casa"
+        description: "Comando para ativar a seguranca da casa"
       automation.alexa_forcar_ligar_alarme_comando:
-        name: "Forcar Ligar Alarme Casa"
-        description: "Comando para armar o alarme da casa ignorando zonas abertas"
+        name: "Modo Seguranca Forcado"
+        description: "Comando para ativar a seguranca da casa ignorando zonas abertas"
       cover.cortina:
         name: "Cortina"
         description: "Cortina RF controlada pelo Smart Life"
@@ -226,9 +226,9 @@ alexa:
 
 Na Alexa, depois de descobrir dispositivos, devem aparecer:
 
-- `Alarme Casa`
-- `Ligar Alarme Casa`
-- `Forcar Ligar Alarme Casa`
+- `Central Seguranca Casa`
+- `Modo Seguranca Casa`
+- `Modo Seguranca Forcado`
 - `Cortina`
 - `Temperatura Aquecedor`
 
@@ -238,8 +238,8 @@ Na Alexa, depois de descobrir dispositivos, devem aparecer:
 
 Use rotina no app Alexa:
 
-- Quando eu disser: `ligar alarme casa`
-- Acao: Casa inteligente -> `Ligar Alarme Casa` -> ligar
+- Quando eu disser: `ativar seguranca da casa`
+- Acao: Casa inteligente -> `Modo Seguranca Casa` -> ligar
 
 Essa rotina aciona a automacao de comando, que valida as aberturas antes de armar. Se houver janela/porta aberta, o Home Assistant anuncia o que esta aberto e nao arma.
 
@@ -247,8 +247,8 @@ Essa rotina aciona a automacao de comando, que valida as aberturas antes de arma
 
 Use rotina no app Alexa:
 
-- Quando eu disser: `forcar ligar alarme casa`
-- Acao: Casa inteligente -> `Forcar Ligar Alarme Casa` -> ligar
+- Quando eu disser: `ativar seguranca forcada`
+- Acao: Casa inteligente -> `Modo Seguranca Forcado` -> ligar
 
 Essa rotina usa a automacao de forcar: anula zonas abertas e tenta armar.
 
@@ -256,11 +256,11 @@ Essa rotina usa a automacao de forcar: anula zonas abertas e tenta armar.
 
 Nao criar rotina de automacao para desarmar sem PIN. Para manter seguranca, usar o dispositivo nativo:
 
-- Dispositivo: `Alarme Casa`
+- Dispositivo: `Central Seguranca Casa`
 - Habilitar no app Alexa: desarmar por voz com PIN de 4 digitos
-- Frase recomendada: `Alexa, desarmar Alarme Casa`
+- Frase recomendada: `Alexa, desarmar Central Seguranca Casa`
 
-A frase `desligar alarme casa` pode conflitar com alarmes de relogio da Alexa. Se houver conflito, usar `desarmar Alarme Casa`.
+Evitar frases como `ligar alarme casa` ou `desligar alarme casa`, porque a Alexa pode interpretar como alarme de relogio/timer antes de acionar a casa inteligente.
 
 ## Automacoes Existentes no Home Assistant
 
@@ -270,10 +270,10 @@ As automacoes abaixo existem apenas para a Alexa conseguir ligar algo como se fo
 
 - `automation.alexa_ligar_alarme_comando`
   - Alias: `Alexa - Ligar alarme comando`
-  - Exposta para Alexa como `Ligar Alarme Casa`
+  - Exposta para Alexa como `Modo Seguranca Casa`
 - `automation.alexa_forcar_ligar_alarme_comando`
   - Alias: `Alexa - Forcar ligar alarme comando`
-  - Exposta para Alexa como `Forcar Ligar Alarme Casa`
+  - Exposta para Alexa como `Modo Seguranca Forcado`
 
 ### Automacoes Executor
 
@@ -472,11 +472,11 @@ Use rotina quando a frase desejada nao e natural para o tipo de dispositivo que 
 
 Exemplo:
 
-- Entidade descoberta: `Ligar Alarme Casa`
-- Frase desejada: `ligar alarme casa`
+- Entidade descoberta: `Modo Seguranca Casa`
+- Frase desejada: `ativar seguranca da casa`
 - Rotina:
-  - Quando eu disser: `ligar alarme casa`
-  - Acao: Casa inteligente -> `Ligar Alarme Casa` -> ligar
+  - Quando eu disser: `ativar seguranca da casa`
+  - Acao: Casa inteligente -> `Modo Seguranca Casa` -> ligar
 
 Nao usar rotina para desarmar alarme sem PIN.
 
@@ -668,12 +668,13 @@ Correcao:
 
 Usar rotinas com frases completas:
 
-- `ligar alarme casa` -> ligar `Ligar Alarme Casa`
-- `forcar ligar alarme casa` -> ligar `Forcar Ligar Alarme Casa`
+- `ativar seguranca da casa` -> ligar `Modo Seguranca Casa`
+- `proteger a casa` -> ligar `Modo Seguranca Casa`
+- `ativar seguranca forcada` -> ligar `Modo Seguranca Forcado`
 
 Para desligar, preferir:
 
-- `desarmar Alarme Casa`
+- `desarmar Central Seguranca Casa`
 
 ### Aquecedor Nao Aceita 42 Graus por Voz
 
