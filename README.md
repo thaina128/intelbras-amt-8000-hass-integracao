@@ -150,6 +150,7 @@ A documentacao operacional esta em
 - manutencao do `configuration.yaml` no Coolify/Home Assistant Container;
 - como adicionar novas entidades ou comandos para Alexa;
 - como enviar avisos falados para o Echo Dot via Alexa Devices;
+- plano para comandos de voz que analisam cameras/Frigate com IA e respondem pela Alexa;
 - troubleshooting de descoberta, account linking e rotinas de voz.
 
 ## Segurança
