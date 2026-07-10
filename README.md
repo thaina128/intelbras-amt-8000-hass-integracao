@@ -137,6 +137,20 @@ logger:
     custom_components.intelbras_amt: debug
 ```
 
+## Alexa Smart Home Manual
+
+Este ambiente usa uma Alexa Smart Home Skill propria, AWS Lambda e o dominio
+`ha.thainamonteiro.com.br` para expor entidades selecionadas do Home Assistant
+para a Alexa.
+
+A documentacao operacional esta em
+[docs/home-assistant-alexa.md](docs/home-assistant-alexa.md), incluindo:
+
+- inventario da Lambda, skill, dominio e entidades expostas;
+- manutencao do `configuration.yaml` no Coolify/Home Assistant Container;
+- como adicionar novas entidades ou comandos para Alexa;
+- troubleshooting de descoberta, account linking e rotinas de voz.
+
 ## Segurança
 
 - Não exponha a porta `9009` da central na internet.

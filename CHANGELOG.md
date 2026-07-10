@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Operational documentation for the Home Assistant Alexa Smart Home setup, including AWS Lambda, Amazon Developer Skill, exposed HA entities, RX500 RF door automation, maintenance commands, and instructions for adding new Alexa devices/commands.
+
 ## [1.5.0] - 2026-02-14
 
 ### Changed
