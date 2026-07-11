@@ -155,6 +155,17 @@ A documentacao operacional esta em
 - plano para comandos de voz que analisam cameras/Frigate com IA e respondem pela Alexa;
 - troubleshooting de descoberta, account linking e rotinas de voz.
 
+## Alertas de Chuva
+
+A instancia tambem possui uma automacao em dois estagios para chuva com portas
+ou janelas abertas. O primeiro aviso exige uma abertura continua de 10 minutos,
+o estagio 2 e reservado para chuva muito forte e o controle persistente evita
+repeticoes ate que todas as aberturas sejam fechadas.
+
+O inventario de entidades, a logica de deduplicacao, os destinos ativos e as
+pendencias de e-mail/celular estao em
+[docs/home-assistant-rain-alerts.md](docs/home-assistant-rain-alerts.md).
+
 ## Segurança
 
 - Não exponha a porta `9009` da central na internet.
