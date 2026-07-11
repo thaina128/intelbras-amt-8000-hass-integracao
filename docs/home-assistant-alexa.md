@@ -31,7 +31,7 @@ homeassistant:
 - Criadas orientacoes para rotinas de voz:
   - `ativar seguranca da casa`
   - `ativar seguranca forcada`
-  - `cancelar seguranca`
+  - `modo visita`
   - `desarmar Central Seguranca Casa` com PIN no app Alexa
 
 ### Avisos Falados na Alexa
@@ -95,12 +95,12 @@ Depois de qualquer alteracao no filtro `alexa.smart_home`, pedir para a Alexa de
 - Ao desarmar, a automacao envia `Abrir Porta` com pulso de preparacao e mais 3 pulsos fortes.
 - A automacao usa `mode: restart` para cancelar tentativas pendentes quando o estado do alarme muda novamente.
 
-### Emergencia Casa via Alexa
+### Modo Visita / Rotina Discreta
 
 - Criada rotina modular `script.emergencia_casa`.
 - Criada entidade de comando para Alexa:
   `automation.alexa_cancelar_seguranca_comando`.
-- Nome exposto para Alexa: `Cancelar Seguranca`.
+- Nome exposto para Alexa: `Modo Visita`.
 - Criada automacao executora:
   `automation.alexa_executar_cancelar_seguranca`.
 - A automacao de comando tem `initial_state: false` para iniciar desligada e ficar pronta para ser ligada pela Alexa.
@@ -118,6 +118,8 @@ Depois de qualquer alteracao no filtro `alexa.smart_home`, pedir para a Alexa de
   - `/config/www/emergencia_casa/intelbras1_profile000.jpg`
   - `/config/www/emergencia_casa/intelbras1_profile100.jpg`
 - A rotina completa nao foi testada de ponta a ponta por seguranca, porque abre acessos fisicos e aciona panico/sirene.
+- Nao usar a frase `cancelar seguranca`: a Alexa pode interpretar como tentativa de desarmar a central de alarme e pedir PIN.
+- Frase discreta recomendada para rotina da Alexa: `modo visita`.
 
 Backups criados:
 
@@ -250,8 +252,8 @@ alexa:
         name: "Modo Seguranca Forcado"
         description: "Comando para ativar a seguranca da casa ignorando zonas abertas"
       automation.alexa_cancelar_seguranca_comando:
-        name: "Cancelar Seguranca"
-        description: "Comando discreto para acionar emergencia da casa"
+        name: "Modo Visita"
+        description: "Rotina discreta da casa"
       cover.cortina:
         name: "Cortina"
         description: "Cortina RF controlada pelo Smart Life"
@@ -265,7 +267,7 @@ Na Alexa, depois de descobrir dispositivos, devem aparecer:
 - `Central Seguranca Casa`
 - `Modo Seguranca Casa`
 - `Modo Seguranca Forcado`
-- `Cancelar Seguranca`
+- `Modo Visita`
 - `Cortina`
 - `Temperatura Aquecedor`
 
@@ -299,14 +301,16 @@ Nao criar rotina de automacao para desarmar sem PIN. Para manter seguranca, usar
 
 Evitar frases como `ligar alarme casa` ou `desligar alarme casa`, porque a Alexa pode interpretar como alarme de relogio/timer antes de acionar a casa inteligente.
 
-### Cancelar Seguranca / Emergencia Silenciosa
+### Modo Visita / Rotina Discreta
 
 Use rotina no app Alexa:
 
-- Quando eu disser: `cancelar seguranca`
-- Acao: Casa inteligente -> `Cancelar Seguranca` -> ligar
+- Quando eu disser: `modo visita`
+- Acao: Casa inteligente -> `Modo Visita` -> ligar
 
-Essa frase deve ser tratada como comando de coacao/emergencia. Ela nao desarma o alarme de forma normal; ela chama `script.emergencia_casa`.
+Essa frase e propositalmente neutra. Ela nao deve conter palavras como `alarme`, `seguranca`, `emergencia`, `panico`, `abrir` ou `porta`, porque esses termos podem revelar a intencao ou fazer a Alexa cair em comandos nativos de alarme/fechadura.
+
+Internamente, a rotina chama `script.emergencia_casa`.
 
 Comportamento esperado:
 
@@ -332,8 +336,8 @@ As automacoes abaixo existem apenas para a Alexa conseguir ligar algo como se fo
   - Alias: `Alexa - Forcar ligar alarme comando`
   - Exposta para Alexa como `Modo Seguranca Forcado`
 - `automation.alexa_cancelar_seguranca_comando`
-  - Alias: `Alexa - Cancelar seguranca comando`
-  - Exposta para Alexa como `Cancelar Seguranca`
+  - Alias atual: `Alexa - Modo visita comando`
+  - Exposta para Alexa como `Modo Visita`
   - Deve ficar desligada quando ociosa
 
 ### Automacoes Executor
@@ -355,7 +359,7 @@ As automacoes abaixo observam quando a Alexa liga as automacoes de comando e exe
   - Tenta armar o alarme
   - Anuncia sucesso/falha via `script.avisar_casa`, que fala no Google Nest e na Alexa
 - `automation.alexa_executar_cancelar_seguranca`
-  - Alias: `Alexa - Executar cancelar seguranca`
+  - Alias atual: `Alexa - Executar modo visita`
   - Modo: `restart`
   - Desliga a entidade de comando `automation.alexa_cancelar_seguranca_comando`
   - Chama `script.emergencia_casa`
@@ -696,10 +700,12 @@ ssh -i ~/.ssh/chave_servidor_casa thaina128@192.168.15.16 \
 
 Nao executar `script.emergencia_casa` por teste casual. Esse script abre acessos e aciona panico/sirene.
 
-Depois de adicionar `Cancelar Seguranca` no filtro da Alexa, pedir descoberta de dispositivos e criar a rotina no app Alexa:
+Depois de adicionar `Modo Visita` no filtro da Alexa, pedir descoberta de dispositivos e criar a rotina no app Alexa:
 
-- Quando eu disser: `cancelar seguranca`
-- Acao: Casa inteligente -> `Cancelar Seguranca` -> ligar
+- Quando eu disser: `modo visita`
+- Acao: Casa inteligente -> `Modo Visita` -> ligar
+
+Se existir dispositivo antigo chamado `Cancelar Seguranca` no app Alexa, remover/esquecer esse dispositivo ou refazer a descoberta para evitar conflito com o dominio de alarme.
 
 ### Conferir Entidades Alexa Devices
 

@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Planning document for an Alexa-triggered camera AI analysis feature using Home Assistant, Frigate, LLM Vision, and Alexa Devices announcements.
 - Documentation for the Alexa-exposed aquecedor temperature `input_number` workaround and its Home Assistant synchronization automations.
 - Documentation for renaming Alexa security devices away from "alarme" wording to avoid conflicts with Alexa timers/clock alarms.
-- Documentation for the Alexa-triggered silent emergency routine `Cancelar Seguranca`, including modular Home Assistant scripts, camera snapshots, mobile notifications, access opening, curtain opening, AMT panic/siren activation, validation, and maintenance notes.
+- Documentation for the Alexa-triggered discrete routine `Modo Visita`, including modular Home Assistant scripts, camera snapshots, mobile notifications, access opening, curtain opening, AMT panic/siren activation, validation, and maintenance notes.
 
 ## [1.5.0] - 2026-02-14
 
