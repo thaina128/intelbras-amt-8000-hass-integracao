@@ -94,6 +94,17 @@ Depois de qualquer alteracao no filtro `alexa.smart_home`, pedir para a Alexa de
 - Ao armar, a automacao envia `Fechar Porta` 3 vezes.
 - Ao desarmar, a automacao envia `Abrir Porta` com pulso de preparacao e mais 3 pulsos fortes.
 - A automacao usa `mode: restart` para cancelar tentativas pendentes quando o estado do alarme muda novamente.
+- Criados scripts reutilizaveis:
+  - `script.porta_rx500_fechar`
+  - `script.porta_rx500_abrir`
+- Criada fechadura virtual `lock.fechadura_entrada` usando `template lock` em modo otimista.
+- Nome exposto para Alexa: `Fechadura Entrada`.
+- Como o modulo RF433 nao informa estado real, a entidade `lock.fechadura_entrada` usa estado presumido pelo ultimo comando e nao deve ser tratada como confirmacao fisica.
+
+Backups criados:
+
+- `/config/scripts.yaml.bak-rx500-lock-20260711T191859Z`
+- `/data/coolify/services/uswo0ko0w8c0gkc0kcso004c/configuration.yaml.bak-rx500-lock-20260711T191906Z`
 
 ### Modo Visita / Rotina Discreta
 
@@ -239,6 +250,7 @@ alexa:
         - automation.alexa_ligar_alarme_comando
         - automation.alexa_forcar_ligar_alarme_comando
         - automation.alexa_cancelar_seguranca_comando
+        - lock.fechadura_entrada
         - cover.cortina
         - input_number.aquecedor_temperatura_alexa
     entity_config:
@@ -254,6 +266,9 @@ alexa:
       automation.alexa_cancelar_seguranca_comando:
         name: "Modo Visita"
         description: "Rotina discreta da casa"
+      lock.fechadura_entrada:
+        name: "Fechadura Entrada"
+        description: "Fechadura virtual RF da porta de entrada"
       cover.cortina:
         name: "Cortina"
         description: "Cortina RF controlada pelo Smart Life"
@@ -268,6 +283,7 @@ Na Alexa, depois de descobrir dispositivos, devem aparecer:
 - `Modo Seguranca Casa`
 - `Modo Seguranca Forcado`
 - `Modo Visita`
+- `Fechadura Entrada`
 - `Cortina`
 - `Temperatura Aquecedor`
 
@@ -300,6 +316,17 @@ Nao criar rotina de automacao para desarmar sem PIN. Para manter seguranca, usar
 - Frase recomendada: `Alexa, desarmar Central Seguranca Casa`
 
 Evitar frases como `ligar alarme casa` ou `desligar alarme casa`, porque a Alexa pode interpretar como alarme de relogio/timer antes de acionar a casa inteligente.
+
+### Trancar Porta
+
+Depois de pedir descoberta de dispositivos, usar:
+
+- `Alexa, trancar Fechadura Entrada`
+- `Alexa, trancar a Fechadura Entrada`
+
+Isso aciona `lock.fechadura_entrada`, que chama `script.porta_rx500_fechar` e envia 3 pulsos RF no canal `switch.porta_switch_2`.
+
+Para destrancar/abrir, a entidade tambem tem acao de `unlock`, mas isso abre a porta fisica pelo canal `switch.porta_switch_1`. No app Alexa, manter destrancar por voz protegido por PIN, se esse recurso for habilitado. Nao testar `unlock` sem estar fisicamente preparado.
 
 ### Modo Visita / Rotina Discreta
 
@@ -460,6 +487,19 @@ Dispositivo Smart Life/Tuya integrado ao Home Assistant:
 - Device HA: `053912ad56d55c7b428928e56032b7b4`
 - `switch.porta_switch_1`: abrir porta
 - `switch.porta_switch_2`: fechar porta
+- `script.porta_rx500_abrir`: rotina reutilizavel para abrir com pulso de preparacao e mais 3 pulsos RF
+- `script.porta_rx500_fechar`: rotina reutilizavel para fechar com 3 pulsos RF
+- `lock.fechadura_entrada`: fechadura virtual para Alexa/Home Assistant
+
+Fechadura virtual:
+
+- Nome HA: `Fechadura Entrada`
+- Entidade: `lock.fechadura_entrada`
+- Tipo: `template lock`
+- Modo: `optimistic`
+- `lock`: chama `script.porta_rx500_fechar`
+- `unlock`: chama `script.porta_rx500_abrir`
+- Limitacao: nao existe sensor de status real da RX500/RF433; o estado visto no HA/Alexa e presumido e pode divergir da porta fisica se o RF falhar.
 
 Automacao:
 
@@ -849,6 +889,8 @@ O modulo e RF433 e nao tem feedback de estado. A automacao ja repete pulsos. Se 
 
 - Home Assistant Alexa Smart Home:
   `https://www.home-assistant.io/integrations/alexa.smart_home/`
+- Home Assistant Template Lock:
+  `https://www.home-assistant.io/integrations/template/`
 - Amazon Developer Console:
   `https://developer.amazon.com/alexa/console/ask`
 - AWS Lambda Console:

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation for the Alexa-exposed aquecedor temperature `input_number` workaround and its Home Assistant synchronization automations.
 - Documentation for renaming Alexa security devices away from "alarme" wording to avoid conflicts with Alexa timers/clock alarms.
 - Documentation for the Alexa-triggered discrete routine `Modo Visita`, including modular Home Assistant scripts, camera snapshots, mobile notifications, access opening, curtain opening, AMT panic/siren activation, validation, and maintenance notes.
+- Documentation for the RX500/RF433 virtual template lock `Fechadura Entrada`, including Alexa exposure, reusable open/close scripts, optimistic state limitations, and voice commands.
 - Operational documentation for the two-stage rain alert automation, including the 10-minute open threshold, per-episode deduplication, heavy-rain escalation, monitored openings, active notification targets, and pending email/mobile setup.
 
 ## [1.5.0] - 2026-02-14
