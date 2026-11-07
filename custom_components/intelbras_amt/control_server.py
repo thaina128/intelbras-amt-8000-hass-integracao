@@ -40,7 +40,8 @@ class AMTControlServer:
 
         self._runner = web.AppRunner(self._app)
         await self._runner.setup()
-        site = web.TCPSite(self._runner, "0.0.0.0", self._port)
+        # Listen on loopback only (local CLI access).
+        site = web.TCPSite(self._runner, "127.0.0.1", self._port)
         await site.start()
         _LOGGER.info("AMT control server started on port %s", self._port)
 
