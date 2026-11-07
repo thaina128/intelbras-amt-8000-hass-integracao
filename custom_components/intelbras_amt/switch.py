@@ -84,10 +84,15 @@ class AMTSwitchBase(CoordinatorEntity[AMTCoordinator], SwitchEntity):
 
 
 class AMTSirenSwitch(AMTSwitchBase):
-    """Siren switch."""
+    """Siren switch.
 
-    _attr_name = "Sirene"
+    Turning it on sends an audible PANIC to the panel (it may be reported to a
+    monitoring company), so it is disabled by default. Prefer the buttons.
+    """
+
+    _attr_name = "Sirene (pânico sonoro)"
     _attr_icon = "mdi:bullhorn"
+    _attr_entity_registry_enabled_default = False
 
     def __init__(
         self,

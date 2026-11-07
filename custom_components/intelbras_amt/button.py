@@ -39,6 +39,10 @@ async def async_setup_entry(
     # Bypass open zones button
     entities.append(AMTBypassOpenZonesButton(coordinator, entry))
 
+    # Siren buttons
+    entities.append(AMTSirenOffButton(coordinator, entry))
+    entities.append(AMTPanicButton(coordinator, entry))
+
     async_add_entities(entities)
 
 
@@ -116,3 +120,48 @@ class AMTBypassOpenZonesButton(AMTButtonBase):
     async def async_press(self) -> None:
         """Handle button press."""
         await self.coordinator.async_bypass_open_zones()
+
+
+class AMTSirenOffButton(AMTButtonBase):
+    """Turn the siren off."""
+
+    _attr_name = "Desligar Sirene"
+    _attr_icon = "mdi:bullhorn-variant-outline"
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the siren off button."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_siren_off"
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.coordinator.async_siren_off()
+
+
+class AMTPanicButton(AMTButtonBase):
+    """Audible panic.
+
+    Sends an audible PANIC to the panel, which may be reported to a monitoring
+    company. Disabled by default.
+    """
+
+    _attr_name = "Pânico Sonoro"
+    _attr_icon = "mdi:alarm-light"
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(
+        self,
+        coordinator: AMTCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the panic button."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_panic"
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.coordinator.async_siren_on()
