@@ -240,7 +240,8 @@ class AMTZoneBypassedSensor(AMTBinarySensorBase):
 class AMTPartitionSensor(AMTBinarySensorBase):
     """Partition armed sensor."""
 
-    _attr_device_class = BinarySensorDeviceClass.LOCK
+    # No device class: LOCK would show "Unlocked" while the partition is armed (on).
+    _attr_icon = "mdi:shield-lock"
 
     def __init__(
         self,
@@ -398,7 +399,8 @@ class AMTACPowerSensor(AMTBinarySensorBase):
 class AMTBatteryConnectedSensor(AMTBinarySensorBase):
     """Battery connected sensor."""
 
-    _attr_device_class = BinarySensorDeviceClass.BATTERY
+    # PLUG: on = connected. BATTERY would show "Low" while the battery is connected.
+    _attr_device_class = BinarySensorDeviceClass.PLUG
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_name = "Bateria Conectada"
 

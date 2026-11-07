@@ -299,7 +299,9 @@ class AMTClient:
             raise AMTConnectionError("Not connected")
 
         packet = self._build_packet(command, payload)
-        _LOGGER.debug("Sending ISEC packet cmd=0x%04X payload=%s", command, payload.hex())
+        # Never log the auth payload: it carries the panel password.
+        logged_payload = "<redacted>" if command == CMD_AUTH else payload.hex()
+        _LOGGER.debug("Sending ISEC packet cmd=0x%04X payload=%s", command, logged_payload)
 
         try:
             self._writer.write(packet)

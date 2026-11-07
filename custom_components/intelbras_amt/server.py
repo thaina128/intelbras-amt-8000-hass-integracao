@@ -400,7 +400,8 @@ class AMTServer:
 
         async with self._connection._lock:
             frame = self._build_frame(command, password)
-            _LOGGER.debug("Sending command: %s", frame.hex())
+            # The frame carries the panel password, so log only the command bytes.
+            _LOGGER.debug("Sending command: %s (%d bytes)", command.hex(), len(frame))
 
             # Set up response future
             self._connection.pending_response = asyncio.get_event_loop().create_future()
