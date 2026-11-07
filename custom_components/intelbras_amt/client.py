@@ -176,6 +176,9 @@ class AMTClient:
         if self._connected and self._reader and self._writer:
             return
 
+        # Drop any stale socket before opening a new one.
+        self._close_writer()
+
         try:
             self._reader, self._writer = await asyncio.wait_for(
                 asyncio.open_connection(self._host, self._port),
@@ -311,11 +314,23 @@ class AMTClient:
                 response_payload.hex(),
             )
             return response_command, response_payload
-        except Exception:
+        except BaseException:
+            # Also on cancellation: close the socket so it does not leak.
             self._connected = False
             self._authenticated = False
             self._auth_password = None
+            self._close_writer()
             raise
+
+    def _close_writer(self) -> None:
+        """Close the current socket without waiting (safe to call anytime)."""
+        if self._writer:
+            try:
+                self._writer.close()
+            except Exception:  # noqa: BLE001
+                pass
+        self._writer = None
+        self._reader = None
 
     async def _authenticate_locked(self, password: str) -> None:
         """Authenticate current connection using given password."""

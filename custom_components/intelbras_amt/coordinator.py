@@ -90,6 +90,8 @@ class AMTCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self.backend.stop()
         elif hasattr(self.backend, "disconnect"):
             await self.backend.disconnect()
+        # Cancel the scheduled refresh and debouncer so nothing reconnects after unload.
+        await super().async_shutdown()
 
     async def async_arm(self, code: str | None = None) -> None:
         """Arm the alarm panel."""
