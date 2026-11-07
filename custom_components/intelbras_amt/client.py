@@ -66,6 +66,9 @@ CMD_ACK = 0xF0FE
 CMD_NACK = 0xF0FD
 CMD_BUSY = 0xF0F7
 
+# Max unsolicited packets to skip while waiting for the auth reply
+MAX_AUTH_SKIP_PACKETS = 5
+
 # AMT status payload offsets (zero-based, without protocol header)
 OFFSET_STATUS = 20
 OFFSET_PARTITIONS_START = 21
@@ -326,6 +329,13 @@ class AMTClient:
         payload = bytes([0x02]) + encoded_password + bytes([0x10])
 
         response_command, response_payload = await self._send_packet(CMD_AUTH, payload)
+
+        # Firmware 2.8.x may push a status or ACK packet before the auth reply. Skip a few.
+        skipped = 0
+        while response_command in (CMD_STATUS, CMD_ACK) and skipped < MAX_AUTH_SKIP_PACKETS:
+            _LOGGER.debug("Packet 0x%04X received during auth, reading the next one", response_command)
+            response_command, response_payload = await self._read_packet()
+            skipped += 1
 
         if response_command == CMD_NACK:
             nack_code = response_payload[0] if response_payload else 0x00
